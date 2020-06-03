@@ -1,6 +1,8 @@
 import os
 from enum import Enum, unique
 from dataclasses import dataclass
+from copy import copy
+import warnings
 
 from scipy.io import loadmat
 import numpy as np
@@ -182,27 +184,74 @@ class TrialTimetable(pd.DataFrame):
         self['day'] = str(spec.day)
 
 
-__FRAME_RATE = 30.0
-
 
 class Fluorescence:
     def __init__(self, spec: RawDataSpec):
         self.fluo = spec.get_dataset_by_type(RawDataType.fluo)
-        self.frame_rate = __FRAME_RATE
+        self.frame_rate = 30.0
 
     @property
     def num_frames(self):
         return self.fluo.shape[-1]
 
     @property
+    def duration(self):
+        return self.num_frames / self.frame_rate
+
+    @property
     def time(self):
         return np.arange(0, self.num_frames - 0.5) / self.frame_rate
 
+    def get_time_slice(self, start, stop=None):
+        fluo_copy = copy(self)
+        start_ind = np.argmin(np.abs(self.time - start))
+        if stop is None:
+            time_slice = self.fluo[:, start_ind]
+        else:
+            assert stop >= start
+            stop_ind = np.argmin(np.abs(self.time - stop))
+            time_slice = self.fluo[:, start_ind:stop_ind]
+
+        fluo_copy.fluo = time_slice
+        return fluo_copy
 
 class Session:
+    """A session is composed of trials.
+
+    Dimensionality [trials, neurons, timesteps]
+
+    """
     def __init__(self, spec: RawDataSpec):
         self.trial_time_table = TrialTimetable(spec)
         self.fluo = Fluorescence(spec)
+        self._stack_fluo_by_trials()
+
+    def _stack_fluo_by_trials(self):
+        fluo_traces = []
+        num_frames = []
+        for start, stop in zip(self.trial_time_table['trial_start'], self.trial_time_table['trial_end']):
+            trial_slice = self.fluo.get_time_slice(start, stop)
+            fluo_traces.append(trial_slice)
+            num_frames.append(trial_slice.num_frames)
+            #TODO why is num_frames sometimes zero?
+
+        num_frames = np.array(num_frames)
+
+        if np.abs(num_frames.min() - num_frames.max()) / num_frames.max() > 0.05:
+            warnings.warn("More than 5 pct difference between shortest and longest trial: {}, {}".format(num_frames.min(), num_frames.max()))
+
+        min_num_frames = num_frames.min()
+        fluo_arrays = []
+        for tr in fluo_traces:
+            fluo_arrays.append(tr.fluo[:, :min_num_frames])
+
+        stacked_fluo = np.array(fluo_arrays)
+        self.fluo.fluo = stacked_fluo
+
+        assert self.fluo.fluo.shape[0] == self.trial_time_table.shape[0], '{} not equal to {}'.format(self.fluo.fluo.shape[0], self.trial_time_table.shape[0])
+        print(self.fluo.num_frames)
+
+
 
 
 def walk_sessions(path_to_root: str):
