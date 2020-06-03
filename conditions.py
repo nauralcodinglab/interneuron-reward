@@ -9,6 +9,20 @@ class CellType(Enum):
     pv = 3
     vip = 4
 
+    def __str__(self):
+        if self == CellType.pyr:
+            string = 'pyr'
+        elif self == CellType.som:
+            string = 'som'
+        elif self == CellType.pv:
+            string = 'pv'
+        elif self == CellType.vip:
+            string = 'vip'
+        else:
+            raise ValueError('Not defined for CellType {}'.format(self))
+
+        return string
+
     def as_path(self) -> str:
         """Get CellType as a string component of a file path."""
         if self == CellType.pyr:
@@ -31,6 +45,9 @@ class Day:
 
     def __hash__(self):
         return self._day
+
+    def __str__(self):
+        return str(self._day)
 
     def as_path(self) -> str:
         """Get Day as a string component of a file path."""
