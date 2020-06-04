@@ -292,50 +292,89 @@ class TrialFluorescence(Fluorescence):
     def __init__(self):
         super().__init__()
 
-    def save(self, fname):
-        """Save fluorescence data to an HDF5 file."""
-        with h5py.File(fname, 'w') as f:
-            if isinstance(self, DeepFluorescence):
-                f.attrs['__type'] = 'DeepFluorescence'
-            elif isinstance(self, LongFluorescence):
-                f.attrs['__type'] = 'LongFluorescence'
-            else:
-                raise NotImplementedError(
-                    'Method not implemented for {}'.format(type(self))
-                )
+    def save(self, name_or_group):
+        """Save fluorescence data to an HDF5 file or group.
 
-            f.attrs['frame_rate'] = self.frame_rate
-            f.create_dataset(
-                'trial_num',
-                data=self.trial_num,
-                dtype=self._dtypes['trial_num'],
+        Arguments
+        ---------
+        name_or_group: str or h5py.Group
+            Name of file in which to save dataset, or an h5py.Group to save it
+            in.
+
+        Raises
+        ------
+        TypeError if `name_or_group` is not a str or h5py.Group.
+
+        """
+        if isinstance(name_or_group, str):
+            with h5py.File(name_or_group, 'w') as f:
+                self._save_to_h5pygroup(f)
+                f.close()
+        elif isinstance(name_or_group, h5py.Group):
+            self._save_to_h5pygroup(name_or_group)
+        else:
+            raise TypeError(
+                'Expected argument `name_or_group` to be a str filename '
+                'or h5py.Group instance, got {} of type {} instead'.format(
+                    name_or_group, type(name_or_group)
+                )
             )
-            f.create_dataset(
-                'cell_num', data=self.cell_num, dtype=self._dtypes['cell_num']
+
+    def _save_to_h5pygroup(self, group: h5py.Group):
+        if isinstance(self, DeepFluorescence):
+            group.attrs['__type'] = 'DeepFluorescence'
+        elif isinstance(self, LongFluorescence):
+            group.attrs['__type'] = 'LongFluorescence'
+        else:
+            raise NotImplementedError(
+                'Method not implemented for {}'.format(type(self))
             )
-            f.create_dataset(
-                'fluo', data=self.fluo, dtype=self._dtypes['fluo']
-            )
-            f.close()
+
+        group.attrs['frame_rate'] = self.frame_rate
+        group.create_dataset(
+            'trial_num', data=self.trial_num, dtype=self._dtypes['trial_num'],
+        )
+        group.create_dataset(
+            'cell_num', data=self.cell_num, dtype=self._dtypes['cell_num']
+        )
+        group.create_dataset(
+            'fluo', data=self.fluo, dtype=self._dtypes['fluo']
+        )
 
     @staticmethod
-    def load(fname):
-        """Load fluorescence data from an HDF5 file."""
-        with h5py.File(fname, 'r') as f:
-            if f.attrs['__type'] == 'DeepFluorescnece':
-                fluo = DeepFluorescence(
-                    f['trial_num'][:], f['cell_num'][:], f['fluo'][...]
+    def load(name_or_group):
+        """Load fluorescence data from an HDF5 file or group."""
+        if isinstance(name_or_group, str):
+            with h5py.File(name_or_group, 'r') as f:
+                fluo = TrialFluorescence._load_from_h5pygroup(f)
+                f.close()
+        elif isinstance(name_or_group, h5py.Group):
+            fluo = TrialFluorescence._load_from_h5pygroup(name_or_group)
+        else:
+            raise TypeError(
+                'Expected argument `name_or_group` to be a str filename '
+                'or h5py.Group instance, got {} of type {} instead'.format(
+                    name_or_group, type(name_or_group)
                 )
-            elif f.attrs['__type'] == 'LongFluorescence':
-                fluo = LongFluorescence(
-                    f['trial_num'][:], f['cell_num'][:], f['fluo'][...]
-                )
-            else:
-                raise NotImplementedError(
-                    'Method not implemented for {}'.format(f.attrs['__type'])
-                )
-            fluo.frame_rate = f.attrs['frame_rate']
-            f.close()
+            )
+
+        return fluo
+
+    @staticmethod
+    def _load_from_h5pygroup(group):
+        if group.attrs['__type'] == 'DeepFluorescnece':
+            fluo = DeepFluorescence(
+                group['trial_num'][:], group['cell_num'][:], group['fluo'][...]
+            )
+        elif group.attrs['__type'] == 'LongFluorescence':
+            fluo = LongFluorescence(
+                group['trial_num'][:], group['cell_num'][:], group['fluo'][...]
+            )
+        else:
+            raise NotImplementedError(
+                'Method not implemented for {}'.format(group.attrs['__type'])
+            )
+        fluo.frame_rate = group.attrs['frame_rate']
 
         return fluo
 
@@ -475,6 +514,9 @@ class Session:
         self.fluo = RawFluorescence.from_spec(spec).to_deep(
             self.trial_timetable
         )
+        self.cell_type = spec.cell_type
+        self.mouse_id = spec.mouse_id
+        self.day = spec.day
 
 
 def walk_sessions(path_to_root: str):
