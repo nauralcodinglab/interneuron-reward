@@ -7,6 +7,7 @@ import warnings
 from scipy.io import loadmat
 import numpy as np
 import pandas as pd
+import h5py
 
 import conditions as cond
 
@@ -184,7 +185,6 @@ class TrialTimetable(pd.DataFrame):
         self['day'] = str(spec.day)
 
 
-
 class Fluorescence:
     def __init__(self, spec: RawDataSpec):
         self.fluo = spec.get_dataset_by_type(RawDataType.fluo)
@@ -206,14 +206,123 @@ class Fluorescence:
         fluo_copy = copy(self)
         start_ind = np.argmin(np.abs(self.time - start))
         if stop is None:
-            time_slice = self.fluo[:, start_ind]
+            time_slice = self.fluo[..., start_ind][..., np.newaxis]
         else:
-            assert stop >= start
             stop_ind = np.argmin(np.abs(self.time - stop))
-            time_slice = self.fluo[:, start_ind:stop_ind]
+            if stop_ind == start_ind:
+                time_slice = self.fluo[..., start_ind][..., np.newaxis]
+            elif stop_ind > start_ind:
+                time_slice = self.fluo[..., start_ind:stop_ind]
+            else:
+                raise ValueError(
+                    'Expected stop ({}) >= start ({}), or `stop=None`'.format(
+                        stop, start
+                    )
+                )
 
         fluo_copy.fluo = time_slice
         return fluo_copy
+
+
+class LongFluorescence:
+    """Trial-by-trial fluorescence stored in long data format.
+
+    Attributes
+    ----------
+    fluo: 2D array
+        Trial by trial fluorescence. Rows are trials/neurons and columns are
+        timesteps.
+    trial_num: vector
+    cell_num: vector
+
+    """
+
+    _dtypes = {
+        'trial_num': np.uint32,
+        'cell_num': np.uint32,
+        'fluo': np.float32,
+    }
+
+    def __init__(self, trial_num, cell_num, fluo_matrix):
+        """Initialize fluorescence data in long format.
+
+        `trial_num` and `cell_num` are broadcasted to match `fluo_matrix` if
+        needed.
+
+        """
+        assert np.ndim(fluo_matrix) == 2
+
+        self.frame_rate = 30.0
+
+        self.fluo = np.asarray(fluo_matrix, dtype=self._dtypes['fluo'])
+        self.trial_num = np.broadcast_to(
+            trial_num, self.fluo.shape[0],
+        ).astype(self._dtypes['trial_num'])
+        self.cell_num = np.asarray(cell_num, self.fluo.shape[0],).astype(
+            dtype=self._dtypes['cell_num']
+        )
+
+    def append(self, trial_num, cell_num, fluo_matrix):
+        """Append data in long format.
+
+        `trial_num` and `cell_num` are broadcasted to match `fluo_matrix` if
+        needed.
+
+        """
+        assert np.ndim(fluo_matrix) == 2
+
+        fluo_numrows = np.shape(fluo_matrix)[0]
+
+        self.trial_num = np.concatenate(
+            [
+                self.trial_num,
+                np.broadcast_to(trial_num, fluo_numrows).astype(
+                    self._dtypes['trial_num']
+                ),
+            ]
+        )
+        self.cell_num = np.concatenate(
+            [
+                self.cell_num,
+                np.broadcast_to(cell_num, fluo_numrows).astype(
+                    self._dtypes['cell_num']
+                ),
+            ]
+        )
+        self.fluo = np.concatenate(
+            [self.fluo, np.asarray(fluo_matrix, dtype=self._dtypes['fluo'])],
+            axis=0,
+        )
+
+    def save(self, fname):
+        """Save fluorescence data in long format to an HDF5 file."""
+        with h5py.File(fname, 'w') as f:
+            f.attrs['frame_rate'] = self.frame_rate
+            f.create_dataset(
+                'trial_num',
+                data=self.trial_num,
+                dtype=self._dtypes['trial_num'],
+            )
+            f.create_dataset(
+                'cell_num', data=self.cell_num, dtype=self._dtypes['cell_num']
+            )
+            f.create_dataset(
+                'fluo', data=self.fluo, dtype=self._dtypes['fluo']
+            )
+            f.close()
+
+    @staticmethod
+    def load(fname):
+        """Load fluorescence data in long format from an HDF5 file."""
+        with h5py.File(fname, 'r') as f:
+            long_fluo = LongFluorescence(
+                f['trial_num'][:], f['cell_num'][:], f['fluo'][...]
+            )
+            long_fluo.frame_rate = f.attrs['frame_rate']
+            f.close()
+
+        return long_fluo
+
 
 class Session:
     """A session is composed of trials.
@@ -221,6 +330,7 @@ class Session:
     Dimensionality [trials, neurons, timesteps]
 
     """
+
     def __init__(self, spec: RawDataSpec):
         self.trial_time_table = TrialTimetable(spec)
         self.fluo = Fluorescence(spec)
@@ -229,16 +339,27 @@ class Session:
     def _stack_fluo_by_trials(self):
         fluo_traces = []
         num_frames = []
-        for start, stop in zip(self.trial_time_table['trial_start'], self.trial_time_table['trial_end']):
+        for start, stop in zip(
+            self.trial_time_table['trial_start'],
+            self.trial_time_table['trial_end'],
+        ):
             trial_slice = self.fluo.get_time_slice(start, stop)
             fluo_traces.append(trial_slice)
             num_frames.append(trial_slice.num_frames)
-            #TODO why is num_frames sometimes zero?
+            print(trial_slice.num_frames)
 
         num_frames = np.array(num_frames)
 
-        if np.abs(num_frames.min() - num_frames.max()) / num_frames.max() > 0.05:
-            warnings.warn("More than 5 pct difference between shortest and longest trial: {}, {}".format(num_frames.min(), num_frames.max()))
+        if (
+            np.abs(num_frames.min() - num_frames.max()) / num_frames.max()
+            > 0.05
+        ):
+            warnings.warn(
+                "More than 5 pct difference between "
+                "shortest and longest trial: {}, {}".format(
+                    num_frames.min(), num_frames.max()
+                )
+            )
 
         min_num_frames = num_frames.min()
         fluo_arrays = []
@@ -248,10 +369,12 @@ class Session:
         stacked_fluo = np.array(fluo_arrays)
         self.fluo.fluo = stacked_fluo
 
-        assert self.fluo.fluo.shape[0] == self.trial_time_table.shape[0], '{} not equal to {}'.format(self.fluo.fluo.shape[0], self.trial_time_table.shape[0])
+        assert (
+            self.fluo.fluo.shape[0] == self.trial_time_table.shape[0]
+        ), '{} not equal to {}'.format(
+            self.fluo.fluo.shape[0], self.trial_time_table.shape[0]
+        )
         print(self.fluo.num_frames)
-
-
 
 
 def walk_sessions(path_to_root: str):
