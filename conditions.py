@@ -107,4 +107,4 @@ class Day:
         return Day(int(regex_matches[0]))
 
 
-DAYS = (Day(day) for day in [1, 3, 5, 7])
+DAYS = (Day(1), Day(3), Day(5), Day(7))

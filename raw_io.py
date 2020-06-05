@@ -138,6 +138,14 @@ def walk_raw_data_from(path_to_root: str) -> RawDataSpec:
                 yield dataset_spec
 
 
+class DataCorruptionError(ValueError):
+    pass
+
+
+class DataCorruptionWarning(Warning):
+    pass
+
+
 class TrialTimetable(pd.DataFrame):
     baseline_duration = 2.0  # Time from trial start to tone start
     post_reward_duration = 10.0  # Time from reward start to trial end
@@ -159,11 +167,38 @@ class TrialTimetable(pd.DataFrame):
 
         raw_data = spec.get_dataset_by_type(RawDataType.time_stamp)
 
+        # Check data integrity.
+        if np.shape(raw_data['tone_start']) != np.shape(raw_data['wt_start']):
+            raise DataCorruptionError(
+                'Could not load timetable dataset from mouse {} '
+                'celltype {} on day {} due to different shapes'
+                ' of `tone_start` {} and `wt_start` {}'.format(
+                    spec.mouse_id,
+                    spec.cell_type,
+                    spec.day,
+                    np.shape(raw_data['tone_start']),
+                    np.shape(raw_data['wt_start']),
+                )
+            )
+        if any(raw_data['tone_start'] > raw_data['wt_start']):
+            warnings.warn(
+                DataCorruptionWarning(
+                    'Found {} trials with `tone_start` after `wt_start`'
+                    ' in mouse {} celltype {} on day {}'.format(
+                        sum(raw_data['tone_start'] > raw_data['wt_start']),
+                        spec.mouse_id,
+                        spec.cell_type,
+                        spec.day,
+                    )
+                )
+            )
+
         # Initialize dataframe
         ## Copy some columns from raw_data
+        TONE_DURATION = 1.0
         content = {
             'tone_start': raw_data['tone_start'].flatten(),
-            'tone_end': raw_data['tone_start'].flatten() + 1.0,
+            'tone_end': raw_data['tone_start'].flatten() + TONE_DURATION,
             'reward_start': raw_data['wt_start'].flatten(),
         }
 
@@ -196,7 +231,29 @@ class TrialTimetable(pd.DataFrame):
         trial_timetable['cell_type'] = str(spec.cell_type)
         trial_timetable['day'] = str(spec.day)
 
+        # See function for definition of an invalid trial.
+        trial_timetable._drop_invalid_trials_inplace()
+
         return trial_timetable
+
+    def _drop_invalid_trials_inplace(self):
+        negative_duration = self['trial_duration'] < 0.0
+        if sum(negative_duration) > 0:
+            warnings.warn(
+                'Dropping {} trials with duration < 0'.format(
+                    sum(negative_duration)
+                )
+            )
+
+        self.drop(index=self.index[negative_duration], inplace=True)
+
+    def _drop_out_of_range_trials_inplace(self, fluo):
+        """Drop trials that are out of time bounds inplace."""
+        in_time_bounds = (self['trial_start'] > 0.0) & (
+            self['trial_end'] < fluo.duration
+        )
+        out_of_bounds_trials = self.index[~in_time_bounds]
+        self.drop(index=out_of_bounds_trials, inplace=True)
 
     def save(self, fname_or_group):
         """Save TrialTimetable to HDF5.
@@ -329,7 +386,6 @@ class RawFluorescence(Fluorescence):
             trial_slice = self.get_time_slice(start, stop)
             fluo_traces.append(trial_slice)
             num_frames.append(trial_slice.num_frames)
-            print(trial_slice.num_frames)
 
         num_frames = np.array(num_frames)
 
@@ -473,7 +529,7 @@ class DeepFluorescence(TrialFluorescence):
         self.trial_num = np.broadcast_to(
             trial_num, self.fluo.shape[0],
         ).astype(self._dtypes['trial_num'])
-        self.cell_num = np.asarray(cell_num, self.fluo.shape[1],).astype(
+        self.cell_num = np.broadcast_to(cell_num, self.fluo.shape[1],).astype(
             dtype=self._dtypes['cell_num']
         )
 
@@ -558,7 +614,7 @@ class LongFluorescence(TrialFluorescence):
         needed.
 
         """
-        assert np.ndim(fluo_matrix) == 2
+        assert np.ndim(fluo_matrix) == np.ndim(self.fluo)
 
         fluo_numrows = np.shape(fluo_matrix)[0]
 
@@ -615,9 +671,20 @@ class SessionTrials:
     def from_spec(spec: RawDataSpec):
         """Create a Session from a RawDataSpec."""
         trial_timetable = TrialTimetable.from_spec(spec)
-        fluo = RawFluorescence.from_spec(spec).to_deep(trial_timetable)
+        raw_fluo = RawFluorescence.from_spec(spec)
+
+        # Some trials might go past the end of the fluorescence recording.
+        # We should drop them since they can't be analyzed.
+        trial_timetable._drop_out_of_range_trials_inplace(raw_fluo)
+
+        # Cut the raw fluorescence into trials based on the trial_timetable
+        # (works better if trials are all around the same length, since trials
+        # are truncated to the length of the shortest trial)
+        deep_fluo = raw_fluo.to_deep(trial_timetable)
+
+        # Construct and return SessionTrials object.
         sess = SessionTrials(
-            trial_timetable, fluo, spec.cell_type, spec.mouse_id, spec.day
+            trial_timetable, deep_fluo, spec.cell_type, spec.mouse_id, spec.day
         )
         return sess
 
