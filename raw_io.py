@@ -584,23 +584,99 @@ class LongFluorescence(TrialFluorescence):
         )
 
 
-class Session:
-    """A session is composed of trials.
+class SessionTrials:
+    """Trials from an imaging session.
 
-    Dimensionality [trials, neurons, timesteps]
+    Attributes
+    ----------
+    trial_timetable : TrialTimetable
+    fluo : TrialFluorescence
+    cell_type
+    mouse_id
+    day
 
     """
 
-    def __init__(self, spec: RawDataSpec):
-        self.trial_timetable = TrialTimetable(spec)
-        self.fluo = RawFluorescence.from_spec(spec).to_deep(
-            self.trial_timetable
+    def __init__(
+        self,
+        trial_timetable: TrialTimetable,
+        fluo: TrialFluorescence,
+        cell_type,
+        mouse_id,
+        day,
+    ):
+        self.trial_timetable = trial_timetable
+        self.fluo = fluo
+        self.cell_type = cell_type
+        self.mouse_id = mouse_id
+        self.day = day
+
+    @staticmethod
+    def from_spec(spec: RawDataSpec):
+        """Create a Session from a RawDataSpec."""
+        trial_timetable = TrialTimetable.from_spec(spec)
+        fluo = RawFluorescence.from_spec(spec).to_deep(trial_timetable)
+        sess = SessionTrials(
+            trial_timetable, fluo, spec.cell_type, spec.mouse_id, spec.day
         )
-        self.cell_type = spec.cell_type
-        self.mouse_id = spec.mouse_id
-        self.day = spec.day
+        return sess
+
+    def save(self, fname_or_group):
+        """Save a Session to HDF5."""
+        if isinstance(fname_or_group, str):
+            with h5py.File(fname_or_group, 'a') as f:
+                self._save_to_h5pygroup(f)
+                f.close()
+        elif isinstance(fname_or_group, h5py.Group):
+            self._save_to_h5pygroup(fname_or_group)
+        else:
+            raise TypeError(
+                'Expected argument `fname_or_group` to be a str filename '
+                'or h5py.Group instance, got {} of type {} instead'.format(
+                    fname_or_group, type(fname_or_group)
+                )
+            )
+
+    def _save_to_h5pygroup(self, group):
+        group.attrs['cell_type'] = self.cell_type
+        group.attrs['mouse_id'] = self.mouse_id
+        group.attrs['day'] = self.day
+        self.trial_timetable.save(group)
+        self.fluo.save(group)
+
+    @staticmethod
+    def load(fname_or_group):
+        """Load a Session from HDF5."""
+        if isinstance(fname_or_group, str):
+            with h5py.File(fname_or_group, 'r') as f:
+                sess = SessionTrials._load_from_h5pygroup(f)
+                f.close()
+        elif isinstance(fname_or_group, h5py.Group):
+            sess = SessionTrials._load_from_h5pygroup(fname_or_group)
+        else:
+            raise TypeError(
+                'Expected argument `fname_or_group` to be a str filename '
+                'or h5py.Group instance, got {} of type {} instead'.format(
+                    fname_or_group, type(fname_or_group)
+                )
+            )
+
+        return sess
+
+    @staticmethod
+    def _load_from_h5pygroup(group):
+        trial_timetable = TrialTimetable.load(group)
+        fluo = TrialFluorescence.load(group)
+        sess = SessionTrials(
+            trial_timetable,
+            fluo,
+            group.attrs['cell_type'],
+            group.attrs['mouse_id'],
+            group.attrs['day'],
+        )
+        return sess
 
 
 def walk_sessions(path_to_root: str):
     for raw_data_spec in walk_raw_data_from(path_to_root):
-        yield Session(raw_data_spec)
+        yield SessionTrials.from_spec(raw_data_spec)
