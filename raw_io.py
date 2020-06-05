@@ -8,6 +8,7 @@ from scipy.io import loadmat
 import numpy as np
 import pandas as pd
 import h5py
+import h5table
 
 import conditions as cond
 
@@ -140,8 +141,14 @@ def walk_raw_data_from(path_to_root: str) -> RawDataSpec:
 class TrialTimetable(pd.DataFrame):
     baseline_duration = 2.0  # Time from trial start to tone start
     post_reward_duration = 10.0  # Time from reward start to trial end
+    __h5_dataset_name = 'trial_timetable'
 
-    def __init__(self, spec: RawDataSpec):
+    def __init__(self, *args, **kwargs):
+        """Initialize a new TrialTimetable."""
+        super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def from_rawdataspec(spec: RawDataSpec):
         """Construct a TrialTimetable from a RawDataSpec."""
         if not issubclass(type(spec), RawDataSpec):
             raise TypeError(
@@ -164,9 +171,11 @@ class TrialTimetable(pd.DataFrame):
 
         ## Add computed columns
         content['tone_duration'] = content['tone_end'] - content['tone_start']
-        content['trial_start'] = content['tone_start'] - self.baseline_duration
+        content['trial_start'] = (
+            content['tone_start'] - TrialTimetable.baseline_duration
+        )
         content['trial_end'] = (
-            content['reward_start'] + self.post_reward_duration
+            content['reward_start'] + TrialTimetable.post_reward_duration
         )
         content['trial_duration'] = (
             content['trial_end'] - content['trial_start']
@@ -177,13 +186,87 @@ class TrialTimetable(pd.DataFrame):
 
         # TODO: extract catch trial data
 
-        super().__init__(content)
-        content['trial_num'] = [i for i in range(self.shape[0])]
+        trial_timetable = TrialTimetable(content)
+        trial_timetable['trial_num'] = [
+            i for i in range(trial_timetable.shape[0])
+        ]
 
         # Initialize meta attributes
-        self['mouse_id'] = str(spec.mouse_id)
-        self['cell_type'] = str(spec.cell_type)
-        self['day'] = str(spec.day)
+        trial_timetable['mouse_id'] = str(spec.mouse_id)
+        trial_timetable['cell_type'] = str(spec.cell_type)
+        trial_timetable['day'] = str(spec.day)
+
+        return trial_timetable
+
+    def save(self, fname_or_group):
+        """Save TrialTimetable to HDF5.
+
+        Arguments
+        ---------
+        fname_or_group : str or h5py.Group
+
+        """
+        if isinstance(fname_or_group, str):
+            with h5py.File(fname_or_group, 'a') as f:
+                self._save_to_h5pygroup(f)
+        elif isinstance(fname_or_group, h5py.Group):
+            self._save_to_h5pygroup(fname_or_group)
+        else:
+            raise TypeError(
+                'Expected argument `fname_or_group` to be a str filename '
+                'or h5py.Group instance, got {} of type {} instead'.format(
+                    fname_or_group, type(fname_or_group)
+                )
+            )
+
+    def _save_to_h5pygroup(self, group: h5py.Group):
+        h5table.save_dataframe(group, self.__h5_dataset_name, self)
+        group[self.__h5_dataset_name].attrs[
+            'baseline_duration'
+        ] = self.baseline_duration
+        group[self.__h5_dataset_name].attrs[
+            'post_reward_duration'
+        ] = self.post_reward_duration
+
+    @staticmethod
+    def load(fname_or_group):
+        """Load TrialTimetable from HDF5.
+
+        Arguments
+        ---------
+        fname_or_group : str or h5py.Group
+
+        """
+        if isinstance(fname_or_group, str):
+            with h5py.File(fname_or_group, 'r') as f:
+                trial_timetable = TrialTimetable._load_from_h5pygroup(f)
+        elif isinstance(fname_or_group, h5py.Group):
+            trial_timetable = TrialTimetable._load_from_h5pygroup(
+                fname_or_group
+            )
+        else:
+            raise TypeError(
+                'Expected argument `fname_or_group` to be a str filename '
+                'or h5py.Group instance, got {} of type {} instead'.format(
+                    fname_or_group, type(fname_or_group)
+                )
+            )
+
+        return trial_timetable
+
+    @staticmethod
+    def _load_from_h5pygroup(group: h5py.Group):
+        trial_timetable = TrialTimetable(
+            h5table.load_dataframe(group, TrialTimetable.__h5_dataset_name)
+        )
+        trial_timetable.baseline_duration = group[
+            TrialTimetable.__h5_dataset_name
+        ].attrs['baseline_duration']
+        trial_timetable.post_reward_duration = group[
+            TrialTimetable.__h5_dataset_name
+        ].attrs['post_reward_duration']
+
+        return trial_timetable
 
 
 class Fluorescence:
@@ -269,8 +352,7 @@ class RawFluorescence(Fluorescence):
         stacked_fluo = np.array(fluo_arrays)
 
         assert (
-            stacked_fluo.shape[0],
-            trial_timetable.shape[0],
+            stacked_fluo.shape[0] == trial_timetable.shape[0]
         ), '{} not equal to {}'.format(
             stacked_fluo.shape[0], trial_timetable.shape[0]
         )

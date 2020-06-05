@@ -6,3 +6,4 @@
   scikit-learn==0.22.1
   scipy==1.4.1
   seaborn==0.10.1
+  h5table==0.0.3
