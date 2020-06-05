@@ -148,7 +148,7 @@ class TrialTimetable(pd.DataFrame):
         super().__init__(*args, **kwargs)
 
     @staticmethod
-    def from_rawdataspec(spec: RawDataSpec):
+    def from_spec(spec: RawDataSpec):
         """Construct a TrialTimetable from a RawDataSpec."""
         if not issubclass(type(spec), RawDataSpec):
             raise TypeError(
