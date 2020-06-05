@@ -638,9 +638,9 @@ class SessionTrials:
             )
 
     def _save_to_h5pygroup(self, group):
-        group.attrs['cell_type'] = self.cell_type
-        group.attrs['mouse_id'] = self.mouse_id
-        group.attrs['day'] = self.day
+        group.attrs['cell_type'] = str(self.cell_type)
+        group.attrs['mouse_id'] = str(self.mouse_id)
+        group.attrs['day'] = str(self.day)
         self.trial_timetable.save(group)
         self.fluo.save(group)
 
@@ -670,9 +670,9 @@ class SessionTrials:
         sess = SessionTrials(
             trial_timetable,
             fluo,
-            group.attrs['cell_type'],
+            cond.CellType.from_str(group.attrs['cell_type']),
             group.attrs['mouse_id'],
-            group.attrs['day'],
+            cond.Day.from_str(group.attrs['day']),
         )
         return sess
 
