@@ -23,7 +23,7 @@ class RawDataType(Enum):
         if self == RawDataType.fluo:
             path = "df.mat"
         elif self == RawDataType.time_stamp:
-            path = "ws.mat"
+            path = "ws_trimmed.mat"
         else:
             raise ValueError('No path for RawDataType {}'.format(self))
 
