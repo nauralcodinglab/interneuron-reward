@@ -10,7 +10,7 @@ import pandas as pd
 import h5py
 import h5table
 
-import conditions as cond
+from . import conditions as cond
 
 
 @unique
