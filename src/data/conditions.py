@@ -89,7 +89,7 @@ class Day:
                 ' look like `day_x`, where x is an integer.)'.format(str_)
             )
 
-        return Day(int(regex_matches[0]))
+        return Day(int(regex_matches[1]))
 
     def as_path(self) -> str:
         """Get Day as a string component of a file path."""
@@ -104,7 +104,7 @@ class Day:
                 ' look like `Day x`, where x is an integer.)'.format(path_)
             )
 
-        return Day(int(regex_matches[0]))
+        return Day(int(regex_matches[1]))
 
 
 DAYS = (Day(1), Day(3), Day(5), Day(7))

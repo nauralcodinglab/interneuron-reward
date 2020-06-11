@@ -332,6 +332,7 @@ class Fluorescence:
         self.fluo = None
         self.trial_num = None
         self.cell_num = None
+        self.is_z_score = False
 
     @property
     def num_frames(self):
@@ -377,6 +378,18 @@ class RawFluorescence(Fluorescence):
         fluo.fluo = spec.get_dataset_by_type(RawDataType.fluo)
         return fluo
 
+    def normalize(self):
+        """Transform cell-by-cell fluorescence signal into Z-score."""
+        if not self.is_z_score:
+            self.fluo -= self.fluo.mean(axis=1)[:, np.newaxis]
+            self.fluo /= self.fluo.std(axis=1)[:, np.newaxis]
+            self.is_z_score = True
+        else:
+            raise RuntimeError(
+                'This fluorescence signal has already been'
+                ' transformed into a Z-score.'
+            )
+
     def to_deep(self, trial_timetable: TrialTimetable):
         fluo_traces = []
         num_frames = []
@@ -413,11 +426,14 @@ class RawFluorescence(Fluorescence):
             stacked_fluo.shape[0], trial_timetable.shape[0]
         )
 
-        return DeepFluorescence(
+        deep_fluo = DeepFluorescence(
             trial_timetable['trial_num'],
             np.arange(stacked_fluo.shape[1]),
             stacked_fluo,
         )
+        deep_fluo.is_z_score = self.is_z_score
+
+        return deep_fluo
 
 
 class TrialFluorescence(Fluorescence):
@@ -469,6 +485,7 @@ class TrialFluorescence(Fluorescence):
             )
 
         group.attrs['frame_rate'] = self.frame_rate
+        group.attrs['is_z_score'] = self.is_z_score
         group.create_dataset(
             'trial_num', data=self.trial_num, dtype=self._dtypes['trial_num'],
         )
@@ -500,7 +517,7 @@ class TrialFluorescence(Fluorescence):
 
     @staticmethod
     def _load_from_h5pygroup(group):
-        if group.attrs['__type'] == 'DeepFluorescnece':
+        if group.attrs['__type'] == 'DeepFluorescence':
             fluo = DeepFluorescence(
                 group['trial_num'][:], group['cell_num'][:], group['fluo'][...]
             )
@@ -513,6 +530,7 @@ class TrialFluorescence(Fluorescence):
                 'Method not implemented for {}'.format(group.attrs['__type'])
             )
         fluo.frame_rate = group.attrs['frame_rate']
+        fluo.is_z_score = group.attrs['is_z_score']
 
         return fluo
 
@@ -553,7 +571,11 @@ class DeepFluorescence(TrialFluorescence):
             self.num_cells,
             self.num_frames,
         )
-        return LongFluorescence(0, self.cell_num, self.fluo.mean(axis=0))
+
+        mean_fluo = LongFluorescence(0, self.cell_num, self.fluo.mean(axis=0))
+        mean_fluo.is_z_score = self.is_z_score
+
+        return mean_fluo
 
     def to_long(self):
         """Get data in LongFluorescence format."""
@@ -572,8 +594,14 @@ class DeepFluorescence(TrialFluorescence):
         fluo = self.fluo.reshape((-1, self.num_frames))
         assert fluo.shape[0] == len(trial_num)
 
-        return LongFluorescence(trial_num, cell_num, fluo)
+        long_fluo = LongFluorescence(trial_num, cell_num, fluo)
+        long_fluo.is_z_score = self.is_z_score
 
+        return long_fluo
+
+
+class ShapeWarning(Warning):
+    pass
 
 class LongFluorescence(TrialFluorescence):
     """Trial-by-trial fluorescence stored in long data format.
@@ -603,25 +631,51 @@ class LongFluorescence(TrialFluorescence):
         self.trial_num = np.broadcast_to(
             trial_num, self.fluo.shape[0],
         ).astype(self._dtypes['trial_num'])
-        self.cell_num = np.asarray(cell_num, self.fluo.shape[0],).astype(
+        self.cell_num = np.broadcast_to(cell_num, self.fluo.shape[0],).astype(
             dtype=self._dtypes['cell_num']
         )
 
-    def append(self, trial_num, cell_num, fluo_matrix):
-        """Append data in long format.
+    def append(self, other):
+        """Append data in long format in-place.
 
-        `trial_num` and `cell_num` are broadcasted to match `fluo_matrix` if
-        needed.
+        Arguments
+        ---------
+        other : LongFluorescence
+            Fluorescence object to append.
+
+        Returns
+        -------
+        None.
 
         """
-        assert np.ndim(fluo_matrix) == np.ndim(self.fluo)
+        assert np.ndim(other.fluo) == np.ndim(self.fluo)
+        if self.is_z_score != other.is_z_score:
+            raise ValueError(
+                'Expected self and other `is_z_score` attributes to'
+                ' match, got {} and {} instead.'.format(
+                    self.is_z_score, other.is_z_score
+                )
+            )
+        if self.num_frames != other.num_frames:
+            warnings.warn(
+                ShapeWarning(
+                    '`num_frames` in self ({}) and other ({}) do not match, {} '
+                    'excess frames will be trimmed from the end of {}'.format(
+                        self.num_frames,
+                        other.num_frames,
+                        np.abs(self.num_frames - other.num_frames),
+                        'self' if self.num_frames > other.num_frames else 'other'
+                    )
+                )
+            )
 
-        fluo_numrows = np.shape(fluo_matrix)[0]
+
+        fluo_numrows = np.shape(other.fluo)[0]
 
         self.trial_num = np.concatenate(
             [
                 self.trial_num,
-                np.broadcast_to(trial_num, fluo_numrows).astype(
+                np.broadcast_to(other.trial_num, fluo_numrows).astype(
                     self._dtypes['trial_num']
                 ),
             ]
@@ -629,15 +683,49 @@ class LongFluorescence(TrialFluorescence):
         self.cell_num = np.concatenate(
             [
                 self.cell_num,
-                np.broadcast_to(cell_num, fluo_numrows).astype(
+                np.broadcast_to(other.cell_num, fluo_numrows).astype(
                     self._dtypes['cell_num']
                 ),
             ]
         )
         self.fluo = np.concatenate(
-            [self.fluo, np.asarray(fluo_matrix, dtype=self._dtypes['fluo'])],
+            [
+                self.fluo[:, :min(self.num_frames, other.num_frames)],
+                np.asarray(other.fluo, dtype=self._dtypes['fluo'])[:, :min(self.num_frames, other.num_frames)]
+            ],
             axis=0,
         )
+
+    def remove_nan(self):
+        """Remove rows with NaN fluorescence.
+
+        Returns
+        -------
+        Number of rows removed.
+
+        """
+        nan_entries = np.isnan(self.fluo)
+        if np.any(nan_entries):
+
+            # Print a warning message
+            all_nan_rows = np.all(nan_entries, axis=1)
+            any_nan_rows = np.any(nan_entries, axis=1)
+            if np.array_equal(all_nan_rows, any_nan_rows):
+                warnings.warn('Removing {} all-nan rows'.format(np.sum(all_nan_rows)))
+            else:
+                warnings.warn('Removing {} rows with nans, {} of which are all-nan'.format(np.sum(any_nan_rows), np.sum(all_nan_rows)))
+
+            # Remove entries with nans
+            self.trial_num = self.trial_num[~any_nan_rows]
+            self.cell_num = self.cell_num[~any_nan_rows]
+            self.fluo = self.fluo[~any_nan_rows, :]
+
+            num_entries_removed = np.sum(any_nan_rows)
+
+        else:
+            num_entries_removed = 0
+
+        return num_entries_removed
 
 
 class SessionTrials:
@@ -669,9 +757,16 @@ class SessionTrials:
 
     @staticmethod
     def from_spec(spec: RawDataSpec):
-        """Create a Session from a RawDataSpec."""
+        """Create a Session from a RawDataSpec.
+
+        Fluorescence is transformed into a Z-score.
+
+        """
         trial_timetable = TrialTimetable.from_spec(spec)
         raw_fluo = RawFluorescence.from_spec(spec)
+
+        # Transform raw fluorescence into z-score
+        raw_fluo.normalize()
 
         # Some trials might go past the end of the fluorescence recording.
         # We should drop them since they can't be analyzed.
