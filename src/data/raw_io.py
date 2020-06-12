@@ -330,9 +330,12 @@ class Fluorescence:
     def __init__(self):
         self.frame_rate = 30.0
         self.fluo = None
-        self.trial_num = None
-        self.cell_num = None
         self.is_z_score = False
+        try:
+            self.trial_num = None
+            self.cell_num = None
+        except AttributeError:
+            pass
 
     @property
     def num_frames(self):
@@ -603,6 +606,11 @@ class DeepFluorescence(TrialFluorescence):
 class ShapeWarning(Warning):
     pass
 
+
+class ShapeError(ValueError):
+    pass
+
+
 class LongFluorescence(TrialFluorescence):
     """Trial-by-trial fluorescence stored in long data format.
 
@@ -628,12 +636,46 @@ class LongFluorescence(TrialFluorescence):
         super().__init__()
 
         self.fluo = np.asarray(fluo_matrix, dtype=self._dtypes['fluo'])
-        self.trial_num = np.broadcast_to(
-            trial_num, self.fluo.shape[0],
-        ).astype(self._dtypes['trial_num'])
-        self.cell_num = np.broadcast_to(cell_num, self.fluo.shape[0],).astype(
-            dtype=self._dtypes['cell_num']
+        self._meta = pd.DataFrame(
+            {
+                'trial_num': np.broadcast_to(trial_num, self.num_rows).astype(
+                    self._dtypes['trial_num']
+                ),
+                'cell_num': np.broadcast_to(cell_num, self.num_rows).astype(
+                    dtype=self._dtypes['cell_num']
+                ),
+            }
         )
+
+    @property
+    def trial_num(self):
+        return self._meta['trial_num']
+
+    @property
+    def cell_num(self):
+        return self._meta['cell_num']
+
+    def set_meta_attr(self, name, value):
+        """Set value of a meta attribute by name, with broadcasting."""
+        if name in self._meta:
+            warnings.warn(
+                'Meta-attribute {} already exists and '
+                'will be overwritten'.format(name)
+            )
+
+        self._meta[name] = value
+
+    def get_meta_attr(self, name):
+        if name not in self._meta:
+            raise ValueError(
+                'Instance does not have a meta-attribute `{}`'.format(name)
+            )
+
+        return self._meta[name]
+
+    @property
+    def num_rows(self):
+        return self.fluo.shape[0]
 
     def append(self, other):
         """Append data in long format in-place.
@@ -664,37 +706,40 @@ class LongFluorescence(TrialFluorescence):
                         self.num_frames,
                         other.num_frames,
                         np.abs(self.num_frames - other.num_frames),
-                        'self' if self.num_frames > other.num_frames else 'other'
+                        'self'
+                        if self.num_frames > other.num_frames
+                        else 'other',
                     )
                 )
             )
 
+        try:
+            new_meta = self._meta.append(other._meta, True, False)
+            new_fluo = np.concatenate(
+                [
+                    self.fluo[:, : min(self.num_frames, other.num_frames)],
+                    np.asarray(other.fluo, dtype=self._dtypes['fluo'])[
+                        :, : min(self.num_frames, other.num_frames)
+                    ],
+                ],
+                axis=0,
+            )
 
-        fluo_numrows = np.shape(other.fluo)[0]
+            assert (
+                new_meta.shape[0] == new_fluo.shape[0]
+            ), 'Number of rows will not match.'
 
-        self.trial_num = np.concatenate(
-            [
-                self.trial_num,
-                np.broadcast_to(other.trial_num, fluo_numrows).astype(
-                    self._dtypes['trial_num']
-                ),
-            ]
-        )
-        self.cell_num = np.concatenate(
-            [
-                self.cell_num,
-                np.broadcast_to(other.cell_num, fluo_numrows).astype(
-                    self._dtypes['cell_num']
-                ),
-            ]
-        )
-        self.fluo = np.concatenate(
-            [
-                self.fluo[:, :min(self.num_frames, other.num_frames)],
-                np.asarray(other.fluo, dtype=self._dtypes['fluo'])[:, :min(self.num_frames, other.num_frames)]
-            ],
-            axis=0,
-        )
+            # Save the new attributes if an error hasn't already occurred.
+            self._meta = new_meta
+            self.fluo = new_fluo
+
+        except AssertionError:
+            raise ShapeError(
+                'Cannot append {} object with {} rows of fluorescence and '
+                '{} rows of metadata'.format(
+                    type(other), other.fluo.shape[0], other._meta.shape[0]
+                )
+            )
 
     def remove_nan(self):
         """Remove rows with NaN fluorescence.
@@ -711,13 +756,18 @@ class LongFluorescence(TrialFluorescence):
             all_nan_rows = np.all(nan_entries, axis=1)
             any_nan_rows = np.any(nan_entries, axis=1)
             if np.array_equal(all_nan_rows, any_nan_rows):
-                warnings.warn('Removing {} all-nan rows'.format(np.sum(all_nan_rows)))
+                warnings.warn(
+                    'Removing {} all-nan rows'.format(np.sum(all_nan_rows))
+                )
             else:
-                warnings.warn('Removing {} rows with nans, {} of which are all-nan'.format(np.sum(any_nan_rows), np.sum(all_nan_rows)))
+                warnings.warn(
+                    'Removing {} rows with nans, {} of which are all-nan'.format(
+                        np.sum(any_nan_rows), np.sum(all_nan_rows)
+                    )
+                )
 
             # Remove entries with nans
-            self.trial_num = self.trial_num[~any_nan_rows]
-            self.cell_num = self.cell_num[~any_nan_rows]
+            self._meta = self._meta.loc[~any_nan_rows, :]
             self.fluo = self.fluo[~any_nan_rows, :]
 
             num_entries_removed = np.sum(any_nan_rows)

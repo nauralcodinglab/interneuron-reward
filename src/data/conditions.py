@@ -10,6 +10,20 @@ class CellType(Enum):
     pv = 3
     vip = 4
 
+    def __repr__(self):
+        if self == CellType.pyr:
+            suffix = 'pyr'
+        elif self == CellType.som:
+            suffix = 'som'
+        elif self == CellType.pv:
+            suffix = 'pv'
+        elif self == CellType.vip:
+            suffix = 'vip'
+        else:
+            raise ValueError('Not defined for CellType {}'.format(self))
+
+        return 'CellType.{}'.format(suffix)
+
     def __str__(self):
         if self == CellType.pyr:
             string = 'pyr'
@@ -77,8 +91,26 @@ class Day:
     def __hash__(self):
         return self._day
 
-    def __str__(self):
+    def __eq__(self, other):
+        return self._day == getattr(other, '_day', other)
+
+    def __lt__(self, other):
+        return self._day < getattr(other, '_day', other)
+
+    def __le__(self, other):
+        return self._day <= getattr(other, '_day', other)
+
+    def __gt__(self, other):
+        return self._day > getattr(other, '_day', other)
+
+    def __ge__(self, other):
+        return self._day >= getattr(other, '_day', other)
+
+    def __repr__(self):
         return 'day_{}'.format(self._day)
+
+    def __str__(self):
+        return repr(self)
 
     @staticmethod
     def from_str(str_):
