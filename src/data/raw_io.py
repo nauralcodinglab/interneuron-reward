@@ -568,6 +568,29 @@ class DeepFluorescence(TrialFluorescence):
     def num_cells(self):
         return len(self.cell_num)
 
+    def normalize(self, normalization_window: (float, float)):
+        if not self.is_z_score:
+            normalization_slice = self.get_time_slice(
+                *normalization_window
+            ).fluo
+            norm_mean = np.array(
+                [
+                    normalization_slice[:, i, :].mean()
+                    for i in range(self.num_cells)
+                ]
+            )
+            norm_std = np.array(
+                [
+                    normalization_slice[:, i, :].std()
+                    for i in range(self.num_cells)
+                ]
+            )
+            self.fluo -= norm_mean[np.newaxis, :, np.newaxis]
+            self.fluo /= norm_std[np.newaxis, :, np.newaxis]
+            self.is_z_score = True
+        else:
+            raise ValueError('Instance has already been z-scored.')
+
     def trial_mean(self):
         assert self.fluo.shape == (
             self.num_trials,
@@ -815,9 +838,6 @@ class SessionTrials:
         trial_timetable = TrialTimetable.from_spec(spec)
         raw_fluo = RawFluorescence.from_spec(spec)
 
-        # Transform raw fluorescence into z-score
-        raw_fluo.normalize()
-
         # Some trials might go past the end of the fluorescence recording.
         # We should drop them since they can't be analyzed.
         trial_timetable._drop_out_of_range_trials_inplace(raw_fluo)
@@ -826,6 +846,9 @@ class SessionTrials:
         # (works better if trials are all around the same length, since trials
         # are truncated to the length of the shortest trial)
         deep_fluo = raw_fluo.to_deep(trial_timetable)
+
+        # Z-score based on the baseline period for each cell. (Chen lab method.)
+        deep_fluo.normalize((0.0, trial_timetable.baseline_duration))
 
         # Construct and return SessionTrials object.
         sess = SessionTrials(

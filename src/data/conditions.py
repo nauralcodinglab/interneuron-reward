@@ -139,4 +139,4 @@ class Day:
         return Day(int(regex_matches[1]))
 
 
-DAYS = (Day(1), Day(3), Day(5), Day(7))
+DAYS = (Day(1), Day(2), Day(3), Day(4), Day(5), Day(6), Day(7))
