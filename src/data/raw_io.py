@@ -219,34 +219,45 @@ class TrialTimetable(pd.DataFrame):
         ]
 
         ## Add catch trial data
-        catch_trial_content = {
-            'tone_start': raw_data['catch_t'][:, 1].flatten(),
-            'tone_end': raw_data['catch_t'][:, 1].flatten() + TONE_DURATION,
-            'reward_start': [
-                np.nan for i in range(len(raw_data['catch_t'].shape[0]))
-            ],
-        }
+        if hasattr(raw_data, 'catch_t') and raw_data['catch_t'].size() != 0:
+            catch_trial_content = {
+                'tone_start': raw_data['catch_t'][:, 1].flatten(),
+                'tone_end': raw_data['catch_t'][:, 1].flatten()
+                + TONE_DURATION,
+                'reward_start': [
+                    np.nan for i in range(raw_data['catch_t'].shape[0])
+                ],
+            }
 
-        del raw_data
+            del raw_data
 
-        catch_trial_content['trial_start'] = (
-            catch_trial_content['tone_start']
-            - TrialTimetable.baseline_duration
-        )
-        rounded_trial_duration = np.round(
-            np.mean(rewarded_trial_content['trial_duration'])
-        )
-        catch_trial_content['trial_end'] = [
-            start + rounded_trial_duration
-            for start in catch_trial_content['trial_start']
-        ]
-        catch_trial_content['reward_delivered'] = [
-            False for i in range(len(catch_trial_content['trial_start']))
-        ]
+            catch_trial_content['trial_start'] = (
+                catch_trial_content['tone_start']
+                - TrialTimetable.baseline_duration
+            )
+            rounded_trial_duration = np.round(
+                np.mean(rewarded_trial_content['trial_duration'])
+            )
+            catch_trial_content['trial_end'] = [
+                start + rounded_trial_duration
+                for start in catch_trial_content['trial_start']
+            ]
+            catch_trial_content['reward_delivered'] = [
+                False for i in range(len(catch_trial_content['trial_start']))
+            ]
 
-        trial_timetable = TrialTimetable(
-            pd.concatenate([rewarded_trial_content, catch_trial_content])
-        )
+            trial_timetable = TrialTimetable(
+                pd.concat(
+                    [
+                        pd.DataFrame(x)
+                        for x in [rewarded_trial_content, catch_trial_content]
+                    ]
+                )
+            )
+        else:
+            del raw_data
+            trial_timetable = TrialTimetable(rewarded_trial_content)
+
         trial_timetable['trial_num'] = [
             i for i in range(trial_timetable.shape[0])
         ]

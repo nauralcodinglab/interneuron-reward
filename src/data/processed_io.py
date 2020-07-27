@@ -38,7 +38,7 @@ def load_sessions_by_day(
                         )
 
                     sess_trials.trial_timetable.drop(
-                        index=sess_trials.index[~selection_mask], inplace=True
+                        index=sess_trials.trial_timetable.index[~selection_mask], inplace=True
                     )
                     sess_trials.fluo.fluo = sess_trials.fluo.fluo[
                         selection_mask, ...
