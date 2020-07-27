@@ -1,6 +1,5 @@
 import os
 from enum import Enum, unique
-from dataclasses import dataclass
 from copy import copy
 import warnings
 
@@ -196,35 +195,64 @@ class TrialTimetable(pd.DataFrame):
         # Initialize dataframe
         ## Copy some columns from raw_data
         TONE_DURATION = 1.0
-        content = {
+        rewarded_trial_content = {
             'tone_start': raw_data['tone_start'].flatten(),
             'tone_end': raw_data['tone_start'].flatten() + TONE_DURATION,
             'reward_start': raw_data['wt_start'].flatten(),
         }
 
-        del raw_data
-
         ## Add computed columns
-        content['tone_duration'] = content['tone_end'] - content['tone_start']
-        content['trial_start'] = (
-            content['tone_start'] - TrialTimetable.baseline_duration
+        rewarded_trial_content['trial_start'] = (
+            rewarded_trial_content['tone_start']
+            - TrialTimetable.baseline_duration
         )
-        content['trial_end'] = (
-            content['reward_start'] + TrialTimetable.post_reward_duration
+        rewarded_trial_content['trial_end'] = (
+            rewarded_trial_content['reward_start']
+            + TrialTimetable.post_reward_duration
         )
-        content['trial_duration'] = (
-            content['trial_end'] - content['trial_start']
+        rewarded_trial_content['trial_duration'] = (
+            rewarded_trial_content['trial_end']
+            - rewarded_trial_content['trial_start']
         )
-        content['reward_delivered'] = [
-            True for i in range(len(content['trial_start']))
+        rewarded_trial_content['reward_delivered'] = [
+            True for i in range(len(rewarded_trial_content['trial_start']))
         ]
 
-        # TODO: extract catch trial data
+        ## Add catch trial data
+        catch_trial_content = {
+            'tone_start': raw_data['catch_t'][:, 1].flatten(),
+            'tone_end': raw_data['catch_t'][:, 1].flatten() + TONE_DURATION,
+            'reward_start': [
+                np.nan for i in range(len(raw_data['catch_t'].shape[0]))
+            ],
+        }
 
-        trial_timetable = TrialTimetable(content)
+        del raw_data
+
+        catch_trial_content['trial_start'] = (
+            catch_trial_content['tone_start']
+            - TrialTimetable.baseline_duration
+        )
+        rounded_trial_duration = np.round(
+            np.mean(rewarded_trial_content['trial_duration'])
+        )
+        catch_trial_content['trial_end'] = [
+            start + rounded_trial_duration
+            for start in catch_trial_content['trial_start']
+        ]
+        catch_trial_content['reward_delivered'] = [
+            False for i in range(len(catch_trial_content['trial_start']))
+        ]
+
+        trial_timetable = TrialTimetable(
+            pd.concatenate([rewarded_trial_content, catch_trial_content])
+        )
         trial_timetable['trial_num'] = [
             i for i in range(trial_timetable.shape[0])
         ]
+        trial_timetable['tone_duration'] = (
+            trial_timetable['tone_end'] - trial_timetable['tone_start']
+        )
 
         # Initialize meta attributes
         trial_timetable['mouse_id'] = str(spec.mouse_id)
