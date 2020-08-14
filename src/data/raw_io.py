@@ -219,7 +219,7 @@ class TrialTimetable(pd.DataFrame):
         ]
 
         ## Add catch trial data
-        if hasattr(raw_data, 'catch_t') and raw_data['catch_t'].size() != 0:
+        if 'catch_t' in raw_data.keys() and raw_data['catch_t'].size != 0:
             catch_trial_content = {
                 'tone_start': raw_data['catch_t'][:, 1].flatten(),
                 'tone_end': raw_data['catch_t'][:, 1].flatten()
@@ -255,6 +255,7 @@ class TrialTimetable(pd.DataFrame):
                 )
             )
         else:
+            print('No attribute `catch_t` in {}'.format(dir(raw_data)))
             del raw_data
             trial_timetable = TrialTimetable(rewarded_trial_content)
 

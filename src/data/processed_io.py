@@ -59,7 +59,7 @@ def load_sessions_by_day(
                 )
 
                 sessions[cell_type].append(
-                    rio.SessionTrials.load(f[cell_type.as_path()][mouse])
+                    sess_trials
                 )
 
         f.close()
