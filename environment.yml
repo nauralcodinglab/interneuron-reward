@@ -7,8 +7,8 @@ dependencies:
   - backcall=0.1.0=py38_0
   - blas=1.0=mkl
   - bleach=3.1.4=py_0
-  - ca-certificates=2020.1.1=0
-  - certifi=2020.4.5.1=py38_0
+  - ca-certificates=2020.6.24=0
+  - certifi=2020.6.20=py38_0
   - cycler=0.10.0=py38_0
   - dbus=1.13.14=h517e14e_0
   - decorator=4.4.2=py_0
@@ -97,6 +97,7 @@ dependencies:
   - testpath=0.4.4=py_0
   - tk=8.6.8=ha441bb4_0
   - tornado=6.0.4=py38h1de35cc_1
+  - tqdm=4.47.0=py_0
   - traitlets=4.3.3=py38_0
   - wcwidth=0.1.9=py_0
   - webencodings=0.5.1=py38_1
@@ -107,6 +108,7 @@ dependencies:
   - zipp=3.1.0=py_0
   - zlib=1.2.11=h1de35cc_3
   - pip:
-    - h5table==0.0.3
-prefix: /miniconda3/envs/candice
+    - h5table==0.0.4
+    - statannot==0.2.2
+prefix: /opt/miniconda3/envs/candice
 
