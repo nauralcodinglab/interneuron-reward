@@ -2,6 +2,7 @@ __pycache__
 *.egg-info
 .ipynb_checkpoints
 img
-data
+/data
+.env
 
 .DS_Store
