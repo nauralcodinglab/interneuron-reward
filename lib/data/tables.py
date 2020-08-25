@@ -3,7 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 import numpy as np
 
-import conditions as cond
+from . import conditions as cond
 
 Base = declarative_base()
 
@@ -70,7 +70,7 @@ class Trial(Base):
 
         return (
             f'Trial {self.id}: {prefix} trial in mouse {self.mouse_id} '
-            f'({self.mouse_id.cell_type}) on day {self.day}'
+            f'({self.mouse.cell_type}) on day {self.day}'
         )
 
 

@@ -67,7 +67,7 @@ for sess in rio.walk_sessions(RAW_DATA_PATH):
             trace_record = tab.Trace(
                 trial_id=trial_record.id,
                 cell_id=cell_record.id,
-                trace=sess.fluo.fluo[i, j, :],
+                trace=sess.fluo.fluo[j, i, :],
             )
             sa_session.add(trace_record)
 

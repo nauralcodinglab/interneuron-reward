@@ -91,6 +91,9 @@ class Day:
     def __hash__(self):
         return self._day
 
+    def __int__(self):
+        return int(self._day)
+
     def __eq__(self, other):
         return self._day == getattr(other, '_day', other)
 
