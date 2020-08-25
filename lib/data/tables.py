@@ -3,7 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 import numpy as np
 
-from . import conditions as cond
+import conditions as cond
 
 Base = declarative_base()
 
@@ -80,6 +80,7 @@ class Cell(Base):
     __tablename__ = 'Cells'
 
     id = sa.Column(sa.Integer(), autoincrement=True, primary_key=True)
+    within_mouse_id = sa.Column(sa.Integer())
     mouse_id = sa.Column(sa.String(5), sa.ForeignKey('Mice.id'))
     mouse = relationship('Mouse', back_populates='cells')
 
@@ -109,13 +110,3 @@ class Mouse(Base):
 
     def __str__(self):
         return f'Mouse {self.id}: {self.cell_type}'
-
-
-if __name__ == '__main__':
-    # Create the corresponding tables in the database if they don't already
-    # exist. Only has to be done once.
-
-    import os
-
-    engine = sa.create_engine(os.environ['SQLALCHEMY_ENGINE_URL'])
-    Base.metadata.create_all(engine)
