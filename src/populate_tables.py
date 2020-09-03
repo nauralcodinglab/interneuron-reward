@@ -45,7 +45,7 @@ for sess in rio.walk_sessions(RAW_DATA_PATH):
             tab.Trial(
                 mouse_id=sess.mouse_id,
                 day=int(sess.day),
-                catch=trial_kind,
+                trial_kind=trial_kind,
                 start_time=trial['trial_start'],
                 stop_time=trial['trial_end'],
             )
