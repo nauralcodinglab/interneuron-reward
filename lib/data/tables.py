@@ -8,24 +8,18 @@ from . import conditions as cond
 Base = declarative_base()
 
 
-class TraceMixin:
-    # Fluorescence traces will be stored as a blob and converted to numpy
-    # via a property
-    _trace_blob = sa.Column(sa.LargeBinary(600 * 4))
-    _trace_blob_dtype = np.float32
+class NumpyVector(sa.types.TypeDecorator):
+    impl = sa.LargeBinary
 
-    @property
-    def trace(self):
-        return np.frombuffer(self._trace_blob, dtype=self._trace_blob_dtype)
+    def process_bind_param(self, value, dialect):
+        assert np.ndim(value) == 1
+        return np.asarray(value, dtype=np.float32).tostring()
 
-    @trace.setter
-    def trace(self, value):
-        self._trace_blob = np.asarray(
-            value, dtype=self._trace_blob_dtype
-        ).tostring()
+    def process_result_value(self, value, dialect):
+        return np.frombuffer(value, dtype=np.float32)
 
 
-class TrialAverageTrace(TraceMixin, Base):
+class TrialAverageTrace(Base):
     """Fluorescence trace for one cell averaged over many trials."""
 
     __tablename__ = 'TrialAverageTraces'
@@ -39,6 +33,8 @@ class TrialAverageTrace(TraceMixin, Base):
     day = sa.Column(sa.Integer(), primary_key=True)
 
     num_trials = sa.Column(sa.Integer())
+
+    trace = sa.Column(NumpyVector)
 
     def __repr__(self):
         return (
@@ -61,6 +57,8 @@ class Trace(Base):
         sa.Integer(), sa.ForeignKey('Trials.id'), primary_key=True
     )
     trial = relationship('Trial', back_populates='traces')
+
+    trace = sa.Column(NumpyVector)
 
     def __repr__(self):
         return f'<Trace from Cell {self.cell_id}, Trial {self.trial_id}>'
