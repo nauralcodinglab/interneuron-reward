@@ -8,21 +8,7 @@ from . import conditions as cond
 Base = declarative_base()
 
 
-class Trace(Base):
-    """Fluorescence trace from a single cell during a single trial."""
-
-    __tablename__ = 'Traces'
-
-    cell_id = sa.Column(
-        sa.Integer(), sa.ForeignKey('Cells.id'), primary_key=True
-    )
-    cell = relationship('Cell', back_populates='traces')
-
-    trial_id = sa.Column(
-        sa.Integer(), sa.ForeignKey('Trials.id'), primary_key=True
-    )
-    trial = relationship('Trial', back_populates='traces')
-
+class TraceMixin:
     # Fluorescence traces will be stored as a blob and converted to numpy
     # via a property
     _trace_blob = sa.Column(sa.LargeBinary(600 * 4))
@@ -38,6 +24,44 @@ class Trace(Base):
             value, dtype=self._trace_blob_dtype
         ).tostring()
 
+
+class TrialAverageTrace(TraceMixin, Base):
+    """Fluorescence trace for one cell averaged over many trials."""
+
+    __tablename__ = 'TrialAverageTraces'
+
+    cell_id = sa.Column(
+        sa.Integer(), sa.ForeignKey('Cells.id'), primary_key=True
+    )
+    cell = relationship('Cell', back_populates='trial_average_traces')
+
+    trial_kind = sa.Column(sa.Enum(cond.TrialKind), primary_key=True)
+    day = sa.Column(sa.Integer(), primary_key=True)
+
+    num_trials = sa.Column(sa.Integer())
+
+    def __repr__(self):
+        return (
+            f'<Average trace from Cell {self.cell_id}, {self.trial_kind} '
+            'on day {self.day}>'
+        )
+
+
+class Trace(Base):
+    """Fluorescence trace from a single cell during a single trial."""
+
+    __tablename__ = 'Traces'
+
+    cell_id = sa.Column(
+        sa.Integer(), sa.ForeignKey('Cells.id'), primary_key=True
+    )
+    cell = relationship('Cell', back_populates='traces')
+
+    trial_id = sa.Column(
+        sa.Integer(), sa.ForeignKey('Trials.id'), primary_key=True
+    )
+    trial = relationship('Trial', back_populates='traces')
+
     def __repr__(self):
         return f'<Trace from Cell {self.cell_id}, Trial {self.trial_id}>'
 
@@ -52,7 +76,7 @@ class Trial(Base):
     mouse = relationship('Mouse', back_populates='trials')
 
     day = sa.Column(sa.Integer(), nullable=False)
-    catch = sa.Column(sa.Boolean(), nullable=False)
+    trial_kind = sa.Column(sa.Enum(cond.TrialKind), nullable=False)
 
     start_time = sa.Column(sa.Float())
     stop_time = sa.Column(sa.Float())
@@ -85,6 +109,9 @@ class Cell(Base):
     mouse = relationship('Mouse', back_populates='cells')
 
     traces = relationship('Trace', back_populates='cell')
+    trial_average_traces = relationship(
+        'TrialAverageTrace', back_populates='cell'
+    )
 
     def __repr__(self):
         return f'<Cell {self.id}>'

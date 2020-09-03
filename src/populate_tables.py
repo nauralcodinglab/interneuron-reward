@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 from lib.data import raw_io as rio
 from lib.data import tables as tab
+from lib.data import conditions as cond
 
 RAW_DATA_PATH = Path().joinpath('data', 'raw')
 
@@ -35,11 +36,16 @@ for sess in rio.walk_sessions(RAW_DATA_PATH):
     # Add this session's trials
     trial_records = []
     for _, trial in sess.trial_timetable.iterrows():
+        if trial['reward_delivered']:
+            trial_kind = cond.TrialKind.non_catch
+        else:
+            trial_kind = cond.TrialKind.catch
+
         trial_records.append(
             tab.Trial(
                 mouse_id=sess.mouse_id,
                 day=int(sess.day),
-                catch=(not trial['reward_delivered']),
+                catch=trial_kind,
                 start_time=trial['trial_start'],
                 stop_time=trial['trial_end'],
             )
@@ -63,6 +69,7 @@ for sess in rio.walk_sessions(RAW_DATA_PATH):
             sa_session.add(cell_record)
             sa_session.commit()
 
+        # Add trial-by-trial traces
         for j, trial_record in enumerate(trial_records):
             trace_record = tab.Trace(
                 trial_id=trial_record.id,
@@ -70,5 +77,30 @@ for sess in rio.walk_sessions(RAW_DATA_PATH):
                 trace=sess.fluo.fluo[j, i, :],
             )
             sa_session.add(trace_record)
+
+        # Add trial average traces
+        all_trial_average_trace = tab.TrialAverageTrace(
+            cell_id=cell_record.id,
+            trial_kind=cond.TrialKind.all,
+            day=int(sess.day),
+            num_trials=sess.fluo.num_trials,
+            trace=sess.fluo.fluo[:, i, :].mean(axis=0)
+        )
+        catch_mask = ~sess.trial_timetable['reward_delivered'].to_numpy()
+        catch_trial_average_trace = tab.TrialAverageTrace(
+            cell_id=cell_record.id,
+            trial_kind=cond.TrialKind.catch,
+            day=int(sess.day),
+            num_trials=catch_mask.sum(),
+            trace=sess.fluo.fluo[:, i, :][catch_mask, :].mean(axis=0)
+        )
+        non_catch_trial_average_trace = tab.TrialAverageTrace(
+            cell_id=cell_record.id,
+            trial_kind=cond.TrialKind.non_catch,
+            day=int(sess.day),
+            num_trials=(~catch_mask).sum(),
+            trace=sess.fluo.fluo[:, i, :][~catch_mask, :].mean(axis=0)
+        )
+        sa_session.add_all([all_trial_average_trace, catch_trial_average_trace, non_catch_trial_average_trace])
 
     sa_session.commit()

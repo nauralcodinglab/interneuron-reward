@@ -84,6 +84,13 @@ class CellType(Enum):
         return cell_type
 
 
+@unique
+class TrialKind(Enum):
+    catch = 1
+    non_catch = 2
+    all = 3
+
+
 class Day:
     def __init__(self, day: int):
         self._day = day
