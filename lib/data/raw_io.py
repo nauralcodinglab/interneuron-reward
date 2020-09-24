@@ -126,6 +126,10 @@ def walk_raw_data_from(path_to_root: str) -> RawDataSpec:
             for day in cond.DAYS:
                 path_to_day = os.path.join(path_to_mouse, day.as_path())
 
+                if not os.path.exists(path_to_day):
+                    # No data for this day.
+                    continue
+
                 dataset_spec = RawDataSpec(mouseid, celltype, day)
 
                 for dtype in RawDataType:
