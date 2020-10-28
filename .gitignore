@@ -4,5 +4,6 @@ __pycache__
 img
 /data
 .env
+/log
 
 .DS_Store
