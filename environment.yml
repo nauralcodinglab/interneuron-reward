@@ -7,8 +7,8 @@ dependencies:
   - backcall=0.1.0=py38_0
   - blas=1.0=mkl
   - bleach=3.1.4=py_0
-  - ca-certificates=2020.6.24=0
-  - certifi=2020.6.20=py38_0
+  - ca-certificates=2020.10.14=0
+  - certifi=2020.6.20=py38hecd8cb5_2
   - cycler=0.10.0=py38_0
   - dbus=1.13.14=h517e14e_0
   - decorator=4.4.2=py_0
@@ -54,13 +54,15 @@ dependencies:
   - mkl-service=2.3.0=py38hfbe908c_0
   - mkl_fft=1.0.15=py38h5e564d8_0
   - mkl_random=1.1.1=py38h959d312_0
+  - mysql-connector-c=6.1.11=hccea1a4_1
+  - mysqlclient=2.0.1=py38hb1e8313_0
   - nbconvert=5.6.1=py38_0
   - nbformat=5.0.6=py_0
   - ncurses=6.2=h0a44026_1
   - notebook=6.0.3=py38_0
   - numpy=1.18.1=py38h7241aed_0
   - numpy-base=1.18.1=py38h3304bdc_1
-  - openssl=1.1.1g=h1de35cc_0
+  - openssl=1.1.1h=haf1e3a3_0
   - pandas=1.0.3=py38h6c726b0_0
   - pandoc=2.2.3.2=0
   - pandocfilters=1.4.2=py38_1
@@ -92,6 +94,7 @@ dependencies:
   - setuptools=46.4.0=py38_0
   - sip=4.19.8=py38h0a44026_0
   - six=1.14.0=py38_0
+  - sqlalchemy=1.3.18=py38haf1e3a3_0
   - sqlite=3.31.1=h5c1f38d_1
   - terminado=0.8.3=py38_0
   - testpath=0.4.4=py_0
@@ -111,4 +114,3 @@ dependencies:
     - h5table==0.0.4
     - statannot==0.2.2
 prefix: /opt/miniconda3/envs/candice
-
