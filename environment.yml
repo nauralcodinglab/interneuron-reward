@@ -112,5 +112,7 @@ dependencies:
   - zlib=1.2.11=h1de35cc_3
   - pip:
     - h5table==0.0.4
+    - mysql-connector-python==8.0.21
+    - protobuf==3.13.0
     - statannot==0.2.2
 prefix: /opt/miniconda3/envs/candice

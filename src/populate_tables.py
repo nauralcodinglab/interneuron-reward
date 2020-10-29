@@ -11,7 +11,7 @@ from lib.data import raw_io as rio
 from lib.data import tables as tab
 from lib.data import conditions as cond
 
-RAW_DATA_PATH = Path().joinpath('data', 'raw')
+RAW_DATA_PATH = Path().joinpath('..', 'interneuron-reward-data', 'raw')
 
 # Connect to SQL database via sqlalchemy session
 engine = sa.create_engine(os.environ['SQLALCHEMY_ENGINE_URL'])
