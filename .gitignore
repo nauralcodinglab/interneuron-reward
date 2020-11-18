@@ -6,4 +6,6 @@ img
 .env
 /log
 
+*.pdf
+
 .DS_Store

@@ -1,3 +1,10 @@
+---
+title: Tuning properties of M1 cells during classical conditioning
+author: Emerson Harkin
+date: November 18, 2020
+geometry: margin=1in
+...
+
 # Cell-level analysis
 
 To better understand how the neural representation of reward in M1 changes over
@@ -13,28 +20,47 @@ of each cell reflected each stage of the classical conditioning experiment, we
 compared the weight vector of each cell to a set of weight vectors representing
 the tone and reward-delivery trial stages using the cosine of the angle between
 the two vectors as a measure of how closely the compressed fluorescence
-signature of each cell reflected a particular part of the trial (see fig.
-ANGULAR DISTANCE CARTOON). This angular distance metric, which we refer to as
-the tuning coefficient, ranges from -1 to 1 and can be interpreted similarly to
-a correlation coefficient; 1 indicates that a cell perfectly reflects a given
-trial stage by increasing its fluorescence, -1 indicates that the cell
-decreases its fluorescence, and 0 indicates no linear relationship between
-fluorescence and the trial stage in question (see fig.  SAMPLE COS SIMILARITY
-TRACES). On day 7, the cells in our dataset exhibited a wide range of tone and
-reward tuning coefficients, with a small proportion of cells being strongly
-positively or negatively tuned to tone or reward and a larger proportion
-exhibiting weaker tuning (tuning coefficients near -1 or 1, see fig. TUNING
-HEATMAP). The overall distribution of tone tuning coefficients was stable from
-day 1 to day 7 (KS test p=0.238, N=1926 cells on day 1 and N=1925 cells on day
-7), indicating that the same proportions of cells were strongly or weakly
-activated or inhibited by tone before and after conditioning. In contrast,
-there was an overall shift towards a greater degree of activation in response
-to reward (two-sided KS test p&lt;0.05 followed by one-sided KS test
-p=8.15e-14, N=1926 cells on day 1 and N=1925 cells on day 7). Together, these
-observations show that neurons in M1 exhibit trial-averaged activity that is
-associated with tone and reward delivery in our classical conditioning task,
-and that the aggregate response to reward but not tone changes over the course
-of learning.
+signature of each cell reflected a particular part of the trial (see fig. 1).
+This angular distance metric, which we refer to as the tuning coefficient,
+ranges from -1 to 1 and can be interpreted similarly to a correlation
+coefficient; 1 indicates that a cell perfectly reflects a given trial stage by
+increasing its fluorescence, -1 indicates that the cell decreases its
+fluorescence, and 0 indicates no linear relationship between fluorescence and
+the trial stage in question (see fig. 2). On day 7, the cells in our dataset
+exhibited a wide range of tone and reward tuning coefficients, with a small
+proportion of cells being strongly positively or negatively tuned to tone or
+reward and a larger proportion exhibiting weaker tuning (tuning coefficients
+near -1 or 1, see figs. 3-4). The overall distribution of tone tuning
+coefficients was stable from day 1 to day 7 (KS test p=0.238, N=1926 cells on
+day 1 and N=1925 cells on day 7), indicating that the same proportions of cells
+were strongly or weakly activated or inhibited by tone before and after
+conditioning. In contrast, there was an overall shift towards a greater degree
+of activation in response to reward (two-sided KS test p&lt;0.05 followed by
+one-sided KS test p=8.15e-14, N=1926 cells on day 1 and N=1925 cells on day 7).
+Together, these observations show that neurons in M1 exhibit trial-averaged
+activity that is associated with tone and reward delivery in our classical
+conditioning task, and that the aggregate response to reward but not tone
+changes over the course of learning.
+
+![Quantifying tuning using an angular distance metric. The reward tuning
+coefficient is the cosine of the angle between an indicator function for the
+time of reward delivery (shown as a square step in yellow) and the Z-scored
+fluorescence of a particular cell (purple) within principal component space.
+The tuning coefficient is close to 1 when the angle is small, close to -1 when
+the angle is close to 180 deg, and close to 0 when the fluorescence is
+orthogonal to the timing of reward
+delivery.](../img/graphics/angular_similarity.png)
+
+![Sample tuning coefficient traces. (Cosine similarity is another name for the
+tuning coefficient.)](../img/graphics/sample_responsive_cells.svg)
+
+![Tone tuning heatmap. Trial-averaged fluorescence of 1925 cells recorded on
+day 7 ordered according to the value of the tone tuning
+coefficient.](../img/graphics/fluo_ordered_by_tone.svg)
+
+![Reward tuning heatmap. Trial-averaged fluorescence of 1925 cells recorded on
+day 7 ordered according to the value of the reward tuning
+coefficient.](../img/graphics/fluo_ordered_by_reward.svg)
 
 The apparent stability of the statistics of tone tuning led us to wonder
 whether this population-level stability reflects an underlying stability in the
@@ -82,7 +108,7 @@ the percent tuning decrease column are calculated as the number of tone tuning
 decrease cells (col 3) divided by the number of cells with either an increase
 or decrease in tuning coefficient (col 3 + col 4). Where indicated, the
 uncertainty represents an approximate 95% confidence interval on the
-proportion, calculated as two standard errors (2 * sqrt(p * (1 - p) / N)).
+proportion, calculated as two standard errors ($2 \sqrt{\frac{p(1 - p)}{N}}$).
 
 | Cell type | Num. cells | Tone tuning decrease | Tone tuning increase | Pct. tuning decrease |
 | :-------: | :--------: | :------------------: | :------------------: | :------------------: |
@@ -101,33 +127,41 @@ from day 1 to day 7. See caption of Table 1 for details.
 
 -------------------------------------------------------------------------------
 
-SCRATCH
+# Mouse-level analysis
 
-Consistent with this idea, we found that a significant proportion of pyramidal
-neurons increased their tone tuning coefficients towards 1 (14.7% of 1207
-neurons; significantly greater than 5% chance level, one-sided Binomial test
-p=2.70e-37) while at the same time a similar proportion exhibited a decrease in
-the tone tuning coefficient towards -1 (20.2% of N=1207 neurons; one-sided
-Binomial test p=3.30e-77). The changes in the coefficients of interneurons were
-more one-sided: significant proportions of both PV and VIP neurons exhibited an
-increase in the tone tuning coefficient (53.2% of N=312 PV neurons, one-sided
-Binomial test p=1.25e-127; 29.2% of N=407 VIP neurons, p=1.85e-56) but there
-was no evidence that any cells of either interneuron type decreased their tone
-tuning coefficient (2.56% of N=312 PV neurons, not significantly greater than
-chance level of 5%, Binomial test p=0.99; 6.39% of N=407 VIP neurons, p=0.123).
+In the previous section, we identified several trends in the dynamics of the
+calcium responses of M1 cells during learning using a technique designed to
+capture the tone- and reward-associated activity of multiple cell types in an
+unsupervised manner. Our analysis also highlighted the diversity of responses
+to conditioned and unconditioned stimuli both within and across cell types.
+Because this analysis was based on data pooled across multiple mice, an
+important caveat associated with these trends is that some of the apparent
+response diversity within cell types could be due to mouse-to-mouse differences
+(eg from experimental factors such as level of GCaMP expression, imaging site,
+as well as behaviour). Indeed, when we examined the distribution of tuning
+coefficients on day 7 stratified by mouse in addition to trial component (tone
+vs reward) and cell type, we observed clear diversity in the tuning of
+individual cells within each mouse as well as a significant level of
+mouse-to-mouse variability (see fig. 5). Inspecting the distribution of changes
+in the tuning coefficients from day 1 to day 7 stratified by the same set of
+factors revealed trends that were broadly consistent with our pooled analysis,
+but also highlighted apparent differences between mice (for example, the tone
+tuning coefficients of pyramidal neurons shifted significantly towards -1 in
+4/6 mice (Wilcoxon signed-rank test p&lt;0.05 in each case), but shifted
+towards 1 in one mouse).
 
-(CAVEAT: the p-values in the above paragraph are probably anti-conservative,
-since the responses of cells within each mouse are correlated. This means we
-can't be sure that any cell types are changing their responses, but we can be
-pretty sure that PV and VIP neurons aren't decreasing their tone tuning
-coefficients.)
+We identified changes in the tuning of each cell type that were consistent
+across mice by CANDICE'S ANALYSIS GOES HERE
 
-(CAVEAT: the right interpretation here might be that most cells don't change
-their tone tuning, irrespective of type.)
+![Tuning coefficients on day 7 stratified by mouse, trial component, and cell
+type.  Curves represent Gaussian kernel density estimates of the distribution
+of tuning coefficients. Each curve is one mouse. Dots above the curves indicate
+the median for the corresponding mouse; dots are randomly jittered along the
+y-axis for clarity. Values close to 1 indicate excitation associated with tone
+or reward, values close to -1 indicate inhibition, and values close to 0
+indicate no association.](../img/graphics/per_mouse_similarity.svg)
 
-Next we asked how the reward tuning of individual cells changed after learning.
-We found an increase in 26.2% of PV neurons and a decrease in 22.8% of cells
-(p=1.04e-35 and p=5.54e-27, respectively). ...
-
-Segway to mouse-by-mouse tests by saying that we wanted to know how consistent
-these trends were across mice in our sample.
+![Change in the tuning coefficient from day 1 to day 7 stratified by mouse,
+trial component, and cell type. Values &gt;0 indicate an increase in excitation
+or decrease in inhibition, values &lt;0 indicate the reverse, and values close
+to 0 indicate no change.](../img/graphics/per_mouse_similarity_change.svg)
