@@ -1,0 +1,68 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts}
+\usepackage{dsfont}
+\usepackage{siunitx}
+
+\DeclareMathOperator{\diag}{diag}
+
+\begin{document}
+
+\section{Calculation of tuning coefficients}
+
+We began by factorizing the fluorescence on day 7 using principal components
+analysis as follows
+\begin{equation}
+    \overline{\mathbf{F}} = \mathbf{U} \diag{(\mathbf{s})} \mathbf{C}^\top
+\end{equation}
+where each row of the matrix $\overline{\mathbf{F}}$ is the trial-averaged
+Z-scored fluorescence of one neuron from \SI{2}{\s} before the start of the tone
+to \SI{11}{\s} after reward delivery, the columns of $\mathbf{C}$ are principal
+components, $\mathbf{s}$ is a vector of singular values in order of decreasing
+magnitude, and $\mathbf{U}$ is a matrix of normalized weights. The rest of our
+analysis is performed in terms of the top 50 components, corresponding to the
+first 50 columns of $\mathbf{C}$, and their associated unnormalized weights,
+corresponding to the first 50 columns of the matrix $\mathbf{W} = \mathbf{Us}$.
+We refer to these truncated matrices as $\mathbf{C}^\prime$ and
+$\mathbf{W}^\prime$.
+
+To determine how the structure of the conditioning task might be represented in
+the activity of recorded neurons, we calculated the projections of the tone and
+reward stages of the trial onto the neural subspace $\mathbf{C}^\prime$ using
+regression
+\begin{equation}
+    \mathbf{b}_{[x]} =
+    ( \mathbf{C}^{\prime\top}\mathbf{C}^\prime )^{-1}
+    \mathbf{C}^{\prime\top} \mathds{1}_{[x]}
+\end{equation}
+where $x$ is tone or reward, and $\mathds{1}_{[\text{tone}]}$ and
+$\mathds{1}_{[\text{reward}]}$ are indicator functions for the period from the
+start of the tone to the start of reward delivery, and for the first
+\SI{2.5}{\s} of reward delivery, respectively.
+
+We defined the tuning coefficient $\tau$ as a measure of the preference of a
+neuron for each trial component as follows
+\begin{equation}
+    \tau_{i[x]} = \frac{\mathbf{w}_i^\prime \mathbf{b}_{[x]}}{\lVert
+    \mathbf{w}_i^\prime \rVert \lVert \mathbf{b}_{[x]} \rVert}
+\end{equation}
+where $\mathbf{w}_i^\prime$ is the vector of weights for the $i$th cell, and
+$\lVert \cdot \rVert$ is the $\ell^2$ norm. This is equivalent to the cosine of
+the angle between $\mathbf{w}_i^\prime$ and $\mathbf{b}_{[x]}$. In some places
+a trial-resolved tuning coefficient $\tau_{ij[x]}$ was used, where $i$ is the
+cell index and $j$ is the trial index. This was calculated in a similar way,
+substituting $\mathbf{v}_{ij}^\prime = \left(\mathbf{C}^{\prime\top}\mathbf{C}^\prime
+\right)^{-1} \mathbf{C}^{\prime\top} \mathbf{f}_{ij}$ (where $\mathbf{f}_{ij}$
+is the fluorescence of the $i$th cell during the $j$th trial) for
+$\mathbf{w}_i^\prime$ in the previous equation.
+
+\section{Data analysis and code availability}
+
+Principal components analysis and tuning coefficient calculation were performed
+using Python 3.8 with the following libraries: NumPy, Pandas, Scikit-Learn,
+h5py, and SQLAlchemy. Figures were prepared in Python using matplotlib and
+seaborn, and in R using ggplot2. Statistical tests were performed in Python
+using SciPy and in R. Code to reproduce the analysis and figures is available
+at \texttt{https://github.com/nauralcodinglab/interneuron-reward}. (Right now the
+code is private, but we can make it public when you publish.)
+
+\end{document}

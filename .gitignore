@@ -6,6 +6,11 @@ img
 .env
 /log
 
+# Latex outputs
 *.pdf
+*.aux
+reports/*.log
+*.out
+*.docx
 
 .DS_Store
