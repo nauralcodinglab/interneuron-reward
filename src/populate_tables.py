@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Load raw data into SQL database."""
+"""Load Z-scored trial data into SQL database."""
 
 import os
 from pathlib import Path

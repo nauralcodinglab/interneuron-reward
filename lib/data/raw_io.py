@@ -423,6 +423,7 @@ class RawFluorescence(Fluorescence):
     def from_spec(spec: RawDataSpec):
         fluo = RawFluorescence()
         fluo.fluo = spec.get_dataset_by_type(RawDataType.fluo)
+        assert fluo.fluo.shape == (fluo.num_cells, fluo.num_frames)
         return fluo
 
     def normalize(self):
@@ -436,6 +437,14 @@ class RawFluorescence(Fluorescence):
                 'This fluorescence signal has already been'
                 ' transformed into a Z-score.'
             )
+
+    @property
+    def num_cells(self):
+        return self.fluo.shape[0]
+
+    @property
+    def cell_num(self):
+        return np.arange(0, self.num_cells)
 
     def to_deep(self, trial_timetable: TrialTimetable):
         fluo_traces = []
@@ -472,10 +481,11 @@ class RawFluorescence(Fluorescence):
         ), '{} not equal to {}'.format(
             stacked_fluo.shape[0], trial_timetable.shape[0]
         )
+        assert stacked_fluo.shape[1] == self.num_cells
 
         deep_fluo = DeepFluorescence(
             trial_timetable['trial_num'],
-            np.arange(stacked_fluo.shape[1]),
+            self.cell_num,
             stacked_fluo,
         )
         deep_fluo.is_z_score = self.is_z_score
@@ -591,6 +601,9 @@ class DeepFluorescence(TrialFluorescence):
         super().__init__()
 
         self.fluo = np.asarray(fluo_arr, dtype=self._dtypes['fluo'])
+
+        # TODO: these calls to np.broadcast_to shouldn't be necessary --
+        # length should already match self.fluo.shape[x].
         self.trial_num = np.broadcast_to(
             trial_num, self.fluo.shape[0],
         ).astype(self._dtypes['trial_num'])

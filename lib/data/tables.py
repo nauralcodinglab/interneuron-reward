@@ -1,6 +1,7 @@
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects import mysql
 import numpy as np
 
 from . import conditions as cond
@@ -8,15 +9,20 @@ from . import conditions as cond
 Base = declarative_base()
 
 
-class NumpyVector(sa.types.TypeDecorator):
-    impl = sa.LargeBinary
-
+class BaseNumpyVector:
     def process_bind_param(self, value, dialect):
         assert np.ndim(value) == 1
         return np.asarray(value, dtype=np.float32).tostring()
 
     def process_result_value(self, value, dialect):
         return np.frombuffer(value, dtype=np.float32)
+
+
+class NumpyVector(sa.types.TypeDecorator, BaseNumpyVector):
+    impl = sa.LargeBinary
+
+class BigNumpyVector(sa.types.TypeDecorator, BaseNumpyVector):
+    impl = mysql.MEDIUMBLOB
 
 
 class TrialAverageTrace(Base):
@@ -62,6 +68,28 @@ class Trace(Base):
 
     def __repr__(self):
         return f'<Trace from Cell {self.cell_id}, Trial {self.trial_id}>'
+
+
+class SessionTrace(Base):
+    """Fluorescence trace from a single cell during an entire session.
+
+    Not Z-scored.
+
+    """
+
+    __tablename__ = 'SessionTraces'
+
+    cell_id = sa.Column(
+        sa.Integer(), sa.ForeignKey('Cells.id'), primary_key=True
+    )
+    cell = relationship('Cell', back_populates='session_trace')
+
+    day = sa.Column(sa.Integer(), primary_key=True)
+
+    trace = sa.Column(BigNumpyVector)
+
+    def __repr__(self):
+        return f'<SessionTrace from Cell {self.cell_id}>'
 
 
 class Trial(Base):
@@ -110,6 +138,7 @@ class Cell(Base):
     trial_average_traces = relationship(
         'TrialAverageTrace', back_populates='cell'
     )
+    session_trace = relationship('SessionTrace', back_populates='cell')
 
     def __repr__(self):
         return f'<Cell {self.id}>'
