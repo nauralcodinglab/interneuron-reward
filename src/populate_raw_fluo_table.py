@@ -41,3 +41,5 @@ for spec in rio.walk_raw_data_from(RAW_DATA_PATH):
             cell_id=cell_record.id, day=int(spec.day), trace=raw_fluo.fluo[i, :]
         )
         sa_session.add(sessiontrace_record)
+
+    sa_session.commit()
