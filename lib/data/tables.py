@@ -15,13 +15,14 @@ class BaseNumpyVector:
         return np.asarray(value, dtype=np.float32).tostring()
 
     def process_result_value(self, value, dialect):
+        # TODO for some reason this is not called by BigNumpyVector
         return np.frombuffer(value, dtype=np.float32)
 
 
-class NumpyVector(sa.types.TypeDecorator, BaseNumpyVector):
+class NumpyVector(BaseNumpyVector, sa.types.TypeDecorator):
     impl = sa.LargeBinary
 
-class BigNumpyVector(sa.types.TypeDecorator, BaseNumpyVector):
+class BigNumpyVector(BaseNumpyVector, sa.types.TypeDecorator):
     impl = mysql.MEDIUMBLOB
 
 
