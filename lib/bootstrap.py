@@ -39,14 +39,13 @@ def get_mouseids_by_celltype(session, cell_type: cond.CellType):
 
 def get_day_one_cell_ids(session, mouse_id: str) -> Iterable[str]:
     """Get ids of cells that were added on day 1."""
-    # FIXME for some reason not all cells have SessionTraces from day 1!! :(
-    raise RuntimeError('Implementation is broken and needs fixing')
     this_mouse_day_one_cells = (
         session.query(tab.Cell)
-        .join(tab.Mouse, tab.Trial)
-        .filter(tab.Trial.day == 1, tab.Mouse.id == mouse_id)
-        .all()
+            .join(tab.SessionTrace, tab.SessionTrace.cell_id == tab.Cell.id)
+            .filter(tab.SessionTrace.day == 1, tab.Cell.mouse_id == mouse_id)
+            .all()
     )
+    assert np.all([c.mouse_id == mouse_id for c in this_mouse_day_one_cells])
 
     cell_ids = [c.id for c in this_mouse_day_one_cells]
     return cell_ids
@@ -72,13 +71,13 @@ def get_averagetrace_given_cellid_sampler(
     )
     num_frames_today = len(
         session.query(tab.SessionTrace)
-        .filter(
-            tab.SessionTrace.cell_id
-            == get_day_one_cell_ids(session, mouse_id)[0],
-            tab.SessionTrace.day == day,
-        )
-        .first()
-        .trace
+            .filter(
+                tab.SessionTrace.cell_id
+                == get_day_one_cell_ids(session, mouse_id)[0],
+                tab.SessionTrace.day == day,
+            )
+            .first()
+            .trace
     )
 
     def sample() -> np.ndarray:
@@ -103,18 +102,20 @@ def get_averagetrace_given_cellid_sampler(
 
         average_traces = np.zeros((len(cellids), TRIAL_LENGTH_IN_FRAMES))
         for i, cellid in enumerate(cellids):
-            session_trace = (
+            session_record = (
                 session.query(tab.SessionTrace)
-                .filter(
-                    tab.SessionTrace.cell_id == cellid,
-                    tab.SessionTrace.day == day,
-                )
-                .first()
+                    .filter(
+                        tab.SessionTrace.cell_id == cellid,
+                        tab.SessionTrace.day == day,
+                    )
+                    .first()
             )
-            print(type(session_trace))
+            assert session_record.day == day
+            assert session_record.cell.mouse_id == mouse_id
+            session_trace = session_record.trace
             for start_ind in trial_start_inds:
                 average_traces[i, :] += session_trace[
-                    start_ind : start_ind + TRIAL_LENGTH_IN_FRAMES
+                    start_ind : (start_ind + TRIAL_LENGTH_IN_FRAMES)
                 ]
 
         average_traces /= num_trials_today
