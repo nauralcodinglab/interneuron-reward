@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, List
+from typing import Callable, Iterable, List, Dict
 
 import numpy as np
 
@@ -62,7 +62,7 @@ def get_cellid_sampler(session, mouseid: str) -> Callable[[], np.ndarray]:
 
 
 def get_averagetrace_given_cellid_sampler(
-    session, cellid_sampler: Callable, mouse_id: str, day: cond.Day
+    session, cellid_sampler: Callable, mouse_id: str, day: int
 ) -> Callable[[], np.ndarray]:
     num_trials_today = (
         session.query(tab.Trial)
@@ -79,6 +79,8 @@ def get_averagetrace_given_cellid_sampler(
             .first()
             .trace
     )
+
+    session_traces: Dict[str, np.ndarray] = _cache_session_traces(session, mouse_id, day)
 
     def sample() -> np.ndarray:
         """Randomly sample trial times and cells and return the trial averages.
@@ -102,19 +104,8 @@ def get_averagetrace_given_cellid_sampler(
 
         average_traces = np.zeros((len(cellids), TRIAL_LENGTH_IN_FRAMES))
         for i, cellid in enumerate(cellids):
-            session_record = (
-                session.query(tab.SessionTrace)
-                    .filter(
-                        tab.SessionTrace.cell_id == cellid,
-                        tab.SessionTrace.day == day,
-                    )
-                    .first()
-            )
-            assert session_record.day == day
-            assert session_record.cell.mouse_id == mouse_id
-            session_trace = session_record.trace
             for start_ind in trial_start_inds:
-                average_traces[i, :] += session_trace[
+                average_traces[i, :] += session_traces[cellid][
                     start_ind : (start_ind + TRIAL_LENGTH_IN_FRAMES)
                 ]
 
@@ -123,3 +114,28 @@ def get_averagetrace_given_cellid_sampler(
         return average_traces
 
     return sample
+
+
+def _cache_session_traces(session, mouse_id: str, day: int) -> Dict[str, np.ndarray]:
+    # Get session trace records for all cells from mouse on day.
+    day_one_cell_ids = get_day_one_cell_ids(session, mouse_id)
+    session_records: Dict[str, tab.SessionTrace] = {
+        cid: (
+            session.query(tab.SessionTrace)
+                .filter(tab.SessionTrace.cell_id == cid, tab.SessionTrace.day == day)
+                .first()
+        )
+        for cid in day_one_cell_ids
+    }
+
+    # Check that records have been loaded correctly.
+    for rec in session_records.values():
+        assert rec.cell.mouse_id == mouse_id
+        assert rec.day == day
+
+    # Extract traces into a dict and return it
+    session_traces: Dict[str, np.ndarray] = {
+        cid: rec.trace for cid, rec in session_records.items()
+    }
+
+    return session_traces
