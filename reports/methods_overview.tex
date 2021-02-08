@@ -4,65 +4,68 @@
 \usepackage{siunitx}
 
 \DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\corr}{corr}
 
 \begin{document}
 
 \section{Calculation of tuning coefficients}
 
-We began by factorizing the fluorescence on day 7 using principal components
-analysis as follows
+We quantified the tuning of individual neurons to the tone and reward stimuli
+delivered in our classical conditioning task using the Spearman non-parametric
+correlation $\rho$ (\texttt{scipy.stats.spearmanr}) between the trial-averaged
+fluorescence and an indicator function for the relevant stimulus
 \begin{equation}
-    \overline{\mathbf{F}} = \mathbf{U} \diag{(\mathbf{s})} \mathbf{C}^\top
+    \rho_{m,n,s}^{(d)} =
+    \corr\left[\frac{1}{\lvert \mathcal{T}_{m}^{(d)} \rvert}\sum_{t \in \mathcal{T}_{m}^{(d)}}\mathbf{f}_{m,n,t:t+T_\text{trial}}^{(d)},
+    \mathbf{1}_s\right],
 \end{equation}
-where each row of the matrix $\overline{\mathbf{F}}$ is the trial-averaged
-Z-scored fluorescence of one neuron from \SI{2}{\s} before the start of the tone
-to \SI{11}{\s} after reward delivery, the columns of $\mathbf{C}$ are principal
-components, $\mathbf{s}$ is a vector of singular values in order of decreasing
-magnitude, and $\mathbf{U}$ is a matrix of normalized weights. The rest of our
-analysis is performed in terms of the top 50 components, corresponding to the
-first 50 columns of $\mathbf{C}$, and their associated unnormalized weights,
-corresponding to the first 50 columns of the matrix $\mathbf{W} = \mathbf{Us}$.
-We refer to these truncated matrices as $\mathbf{C}^\prime$ and
-$\mathbf{W}^\prime$.
+where $t \in \mathcal{T}_{m}^{(d)}$ is the start of the baseline period before a
+trial in mouse $m$ on day $d \in \{1, 7\}$,
+$\mathbf{f}_{m,n,t:t+T_\text{trial}}^{(d)}$ is the fluorescence trace of neuron
+$n$ from mouse $m$ during a single trial, $\mathbf{1}_s$ is an indicator
+function for stimulus $s \in \{\text{tone}, \text{reward}\}$, $U_m^{(d)}$ is the
+number of trials, and $\rho$ is the Spearman correlation coefficient.  This
+cell-resolved tuning analysis was restricted to a $T_\text{trial} = $\SI{13}{\s}
+window around each trial, starting with a 2 second baseline period before the
+tone. We considered the ``tone'' period to range from the start of the tone to
+the start of reward delivery, and the ``reward'' period to be the first 2.5
+seconds of reward delivery. We used the change in $\rho$ from day 1 to day 7 as
+a cell-resolved measure of changes in tuning over the course of learning.
 
-To determine how the structure of the conditioning task might be represented in
-the activity of recorded neurons, we calculated the projections of the tone and
-reward stages of the trial onto the neural subspace $\mathbf{C}^\prime$ using
-regression
+To summarize learning-associated changes in tuning, we calculated the mean
+change in the Spearman correlation for each cell type and trial component (tone
+or reward) from day 1 to day 7 as follows
 \begin{equation}
-    \mathbf{b}_{[x]} =
-    ( \mathbf{C}^{\prime\top}\mathbf{C}^\prime )^{-1}
-    \mathbf{C}^{\prime\top} \mathds{1}_{[x]}
+    \overline{\Delta\rho}_{s} = \frac{1}{\lvert \mathcal{M} \rvert} \sum_{m \in \mathcal{M}} \frac{1}{N_m} \sum_{n=1}^{N_m}
+    \left(\rho_{m,n,s}^{(7)} - \rho_{m,n,s}^{(1)}\right),
 \end{equation}
-where $x$ is tone or reward, and $\mathds{1}_{[\text{tone}]}$ and
-$\mathds{1}_{[\text{reward}]}$ are indicator functions for the period from the
-start of the tone to the start of reward delivery, and for the first
-\SI{2.5}{\s} of reward delivery, respectively.
+where $\mathcal{M}$ is the set of mice used in the experiment, $N_m$ is the
+number of neurons in mouse $m$, and $\rho_{m,n,s}^{(d)}$ is the Spearman
+correlation as defined above.
 
-We defined the tuning coefficient $\tau$ as a measure of the preference of a
-neuron for each trial component as follows
-\begin{equation}
-    \tau_{i[x]} = \frac{\mathbf{w}_i^\prime \mathbf{b}_{[x]}}{\lVert
-    \mathbf{w}_i^\prime \rVert \lVert \mathbf{b}_{[x]} \rVert}
-\end{equation}
-where $\mathbf{w}_i^\prime$ is the vector of weights for the $i$th cell, and
-$\lVert \cdot \rVert$ is the $\ell^2$ norm. This is equivalent to the cosine of
-the angle between $\mathbf{w}_i^\prime$ and $\mathbf{b}_{[x]}$. In some places
-a trial-resolved tuning coefficient $\tau_{ij[x]}$ was used, where $i$ is the
-cell index and $j$ is the trial index. This was calculated in a similar way,
-substituting $\mathbf{v}_{ij}^\prime = \left(\mathbf{C}^{\prime\top}\mathbf{C}^\prime
-\right)^{-1} \mathbf{C}^{\prime\top} \mathbf{f}_{ij}$ (where $\mathbf{f}_{ij}$
-is the fluorescence of the $i$th cell during the $j$th trial) for
-$\mathbf{w}_i^\prime$ in the previous equation.
+We used a non-parametric approach for statistical tests involving the mean
+change in Spearman correlation by scrambling trial times and bootstrapping mice
+to construct a null distribution for $\overline{\Delta\rho}_{s}$. Specifically,
+we first drew a random sample of $\lvert \mathcal{M} \rvert$ mice from
+$\mathcal{M}$ with replacement, then drew a random sample of $\lvert
+\mathcal{T}_m^{(d)} \rvert$ trial start times uniformly distributed between 0
+and $T_\text{session}^{(d)} - T_\text{trial}$ for each day $d$ and
+randomly-selected mouse, and finally used these randomly-selected mice and
+scrambled start times to compute the change in tuning
+$\overline{\Delta\rho}_{s}$. This process was repeated 1000 times to approximate
+the distribution of $\overline{\Delta\rho}_{s}$ under the null hypothesis that
+changes in tuning are unrelated to tone and reward delivery. We considered the
+observed changes in tuning $\overline{\Delta\rho}_{s}$ to be statistically
+significant at the $*$ or $**$ level if they fell into the \SI{5}{\percent} or
+\SI{1}{\percent} tails of this distribution, respectively.
 
 \section{Data analysis and code availability}
 
-Principal components analysis and tuning coefficient calculation were performed
-using Python 3.8 with the following libraries: NumPy, Pandas, Scikit-Learn,
-h5py, and SQLAlchemy. Figures were prepared in Python using matplotlib and
-seaborn, and in R using ggplot2. Statistical tests were performed in Python
-using SciPy and in R. Code to reproduce the analysis and figures is available
-at \texttt{https://github.com/nauralcodinglab/interneuron-reward}. (Right now the
+Tuning coefficient calculation and statistical tests were performed using Python
+3.8 with the following libraries: NumPy, Pandas, h5py, and SQLAlchemy. Figures
+were prepared in Python using matplotlib and seaborn, and in R using ggplot2.
+Code to reproduce the analysis and figures is available at
+\texttt{https://github.com/nauralcodinglab/interneuron-reward}. (Right now the
 code is private, but we can make it public when you publish.)
 
 \end{document}
