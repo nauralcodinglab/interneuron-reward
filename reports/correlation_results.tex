@@ -1,0 +1,58 @@
+\documentclass{article}
+
+\usepackage{amsmath,amsfonts}
+\usepackage{dsfont}
+\usepackage{siunitx}
+
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\corr}{corr}
+
+\begin{document}
+
+\section{Main text}
+
+To understand how the representations of rewards and reward-predicting cues
+change in M1 over the course of learning, we began by analyzing the tuning
+properties of individual cells.  An inspection of the trial-averaged
+fluorescence of neurons recorded after seven days of conditioning revealed a
+wide range of positive and negative responses to tone (Fig. 2 A) and reward
+(Fig. 2 B). Quantifying the tuning of each cell's average response to tone and
+reward using the non-parametric Spearman correlation $\rho$ (see Methods)
+revealed continuous distributions of tone and reward tuning with no clear
+boundaries between positively, negatively, and un-tuned cells (Fig. 2 C, D).
+Comparing the tuning properties of the same cells recorded on day 1 and day 7,
+we observed a wide distribution of learning-associated changes in tuning within
+each cell and even within individual mice (Fig.\ 2 E, F, each curve represents
+one mouse). In every animal recorded, we were able to identify examples of
+neurons with positive, negative, and virtually no change in tuning to tone and
+reward. In spite of this high degree of variability, we found several
+significant cell-type specific trends. Specifically, PN and VIP neurons
+exhibited opposite changes in reward tuning, with the reward Spearman
+correlations of PN decreasing on average from day 1 to day 7 ($\overline{\Delta
+\rho}_\text{reward} = -0.141$, Monte-Carlo $p<0.01$, see Methods) while those of
+VIP cells increased ($\overline{\Delta \rho}_\text{reward} = 0.161$, $p<0.01$);
+at the same time, PN exhibited an increase in the tone Spearman correlation
+($\overline{\Delta \rho}_\text{tone} = 0.082$, $p<0.01$). We did not observe any
+significant changes in the average tuning properties of PV interneurons
+($\overline{\Delta \rho}_\text{tone} = -0.049$, $\overline{\Delta
+\rho}_\text{reward} = 0.014$, $p > 0.05$ in each case).  Together, these
+observations point to a great diversity in the learning-associated changes in
+the response properties of M1 neurons both within and across cell-types.
+
+\section{Figure caption}
+
+Learning-associated changes in single-neuron tuning properties in M1. (A, B)
+Representative trial-averaged fluorescence traces, colour-coded based on
+non-parametric Spearman correlation with tone (A) or reward (B;\ gray traces at
+top). Each trace is one neuron recorded on day 7. (C, D) Trial-averaged
+fluorescence traces of all cells recorded on day 7, sorted according to
+correlation with tone (C) or reward (D). Tuning coefficient refers to the
+Spearman correlation coefficient $\rho$. (E, F) Distribution of changes in
+Spearman correlation $\Delta \rho$ with tone (E) or reward (F) according to cell
+type. Each curve represents a Gaussian kernel density estimate of the
+distribution of $\Delta \rho$ in a single mouse. (G) Mean change in Spearman
+correlation $\overline{\Delta \rho}$ according to cell type. Null distributions
+(gray) estimated by re-sampling mice and shuffling trial times (see description
+of Monte-Carlo simulation in Methods).
+
+\end{document}
