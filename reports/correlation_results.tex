@@ -11,33 +11,52 @@
 
 \section{Main text}
 
-To understand how the representations of rewards and reward-predicting cues
-change in M1 over the course of learning, we began by analyzing the tuning
-properties of individual cells.  An inspection of the trial-averaged
-fluorescence of neurons recorded after seven days of conditioning revealed a
-wide range of positive and negative responses to tone (Fig. 2 A) and reward
-(Fig. 2 B). Quantifying the tuning of each cell's average response to tone and
-reward using the non-parametric Spearman correlation $\rho$ (see Methods)
-revealed continuous distributions of tone and reward tuning with no clear
-boundaries between positively, negatively, and un-tuned cells (Fig. 2 C, D).
-Comparing the tuning properties of the same cells recorded on day 1 and day 7,
-we observed a wide distribution of learning-associated changes in tuning within
-each cell and even within individual mice (Fig.\ 2 E, F, each curve represents
-one mouse). In every animal recorded, we were able to identify examples of
-neurons with positive, negative, and virtually no change in tuning to tone and
-reward. In spite of this high degree of variability, we found several
-significant cell-type specific trends. Specifically, PN and VIP neurons
-exhibited opposite changes in reward tuning, with the reward Spearman
-correlations of PN decreasing on average from day 1 to day 7 ($\overline{\Delta
-\rho}_\text{reward} = -0.141$, Monte-Carlo $p<0.01$, see Methods) while those of
-VIP cells increased ($\overline{\Delta \rho}_\text{reward} = 0.161$, $p<0.01$);
-at the same time, PN exhibited an increase in the tone Spearman correlation
-($\overline{\Delta \rho}_\text{tone} = 0.082$, $p<0.01$). We did not observe any
-significant changes in the average tuning properties of PV interneurons
-($\overline{\Delta \rho}_\text{tone} = -0.049$, $\overline{\Delta
-\rho}_\text{reward} = 0.014$, $p > 0.05$ in each case).  Together, these
-observations point to a great diversity in the learning-associated changes in
-the response properties of M1 neurons both within and across cell-types.
+The next question we asked was whether different cell types changed their
+response properties following associative learning. To understand how the
+representations of reward and reward-predicting cues changed over the course of
+learning, we began by analyzing the tuning properties of individual cells.  By
+calculating the correlation between each cell's trial-averaged fluorescence and
+the timing of the CS or reward (non-parametric Spearman correlation $\rho$, see
+Methods) on day 7 of the experiment, we observed a wide range of tuning
+coefficients across cells, with a small proportion of cells being strongly
+positively or negatively tuned to the CS or reward stimulus (tuning coefficient
+near -1 or 1; Figure 2A-D), consistent with our earlier analyses that neurons in
+M1 show activity associated with the CS or reward on day 1 of the conditioning
+task. We next examined whether the tuning coefficient changed within each cell
+type from day 1 to day 7 after associative learning by calculating the changes
+in the tuning coefficients for cell within each mouse from day 1 to day 7
+(Figure 2E-G).  On average, PN cells showed a significant increase in CS
+Spearman correlation ($\overline{\Delta \rho}$ CS = 0.082, Monte-Carlo $p <
+0.01$, see Method Details), suggesting an increase in CS tuning from day 1 to
+day 7.  For reward tuning, PNs and VIP-INs exhibited opposite changes on
+average: the reward Spearman correlations of PNs decreased from day 1 to day 7
+($\overline{\Delta \rho}$ reward = -0.141, Monte-Carlo $p < 0.01$), while those
+of VIP-INs increased ($\overline{\Delta \rho}$ reward = 0.161, Monte-Carlo $p <
+0.01$). We did not observe any significant changes in the average tuning
+properties of PV-INs in either case ($\overline{\Delta \rho}$ CS = -0.049,
+$\overline{\Delta \rho}$ reward = 0.014, Monte-Carlo $p > 0.05$). Overall, the
+single-cell analyses revealed a trend that the response properties may
+undergo cell-type specific modifications during associative learning.
+
+Because neuronal population codes can be more or less than the sum of their
+parts (Pillow et al., 2008; de Vries et al., 2020; see Averbeck et al., 2006 for
+review), we next asked how the responses of populations of each cell type
+changed over the course of learning. In particular, we sought to determine
+whether populations that exhibited stronger responses to either CS or reward
+after learning did so because of either (1) an increase in the number of neurons
+being recruited during the stimulus, or (2) an increase in the trial-to-trial
+reliability of neurons that already responded to the stimulus on day 1. ...
+
+Pillow, J., Shlens, J., Paninski, L. et al. Spatio-temporal correlations and
+visual signalling in a complete neuronal population. Nature 454, 995–999 (2008).
+https://doi.org/10.1038/nature07140
+
+de Vries, S.E.J., Lecoq, J.A., Buice, M.A. et al. A large-scale standardized
+physiological survey reveals functional organization of the mouse visual cortex.
+Nat Neurosci 23, 138–151 (2020). https://doi.org/10.1038/s41593-019-0550-9
+
+Averbeck, B., Latham, P. \& Pouget, A. Neural correlations, population coding and
+computation. Nat Rev Neurosci 7, 358–366 (2006). https://doi.org/10.1038/nrn1888
 
 \section{Figure caption}
 
@@ -49,10 +68,14 @@ fluorescence traces of all cells recorded on day 7, sorted according to
 correlation with tone (C) or reward (D). Tuning coefficient refers to the
 Spearman correlation coefficient $\rho$. (E, F) Distribution of changes in
 Spearman correlation $\Delta \rho$ with tone (E) or reward (F) according to cell
-type. Each curve represents a Gaussian kernel density estimate of the
-distribution of $\Delta \rho$ in a single mouse. (G) Mean change in Spearman
-correlation $\overline{\Delta \rho}$ according to cell type. Null distributions
-(gray) estimated by re-sampling mice and shuffling trial times (see description
-of Monte-Carlo simulation in Methods).
+type. Each curve represents the cells from one mouse, with the height of the
+curve being proportional to the number of cells (area under the curve normalized
+to 1). Distributions were estimated using Gaussian kernel density estimation. PN
+$N=6$ mice, $N = 187 - 444$ cells per mouse; PV $N=6$ mice, $N = 41 - 136$ cells
+per mouse; VIP $N=5$ mice, $N = 94 - 189$ cells per mouse.  (G) Mean change in
+Spearman correlation $\overline{\Delta \rho}$ across all mice and cells
+according to cell type. Null distributions (gray) estimated by re-sampling mice
+and shuffling trial times (see description of Monte-Carlo simulation in
+Methods). Sample sizes same as in E and F.
 
 \end{document}

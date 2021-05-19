@@ -11,17 +11,19 @@
 \section{Calculation of tuning coefficients}
 
 We quantified the tuning of individual neurons to the tone and reward stimuli
-delivered in our classical conditioning task using the Spearman non-parametric
+delivered in our classical conditioning task using the non-parametric Spearman
 correlation $\rho$ (\texttt{scipy.stats.spearmanr}) between the trial-averaged
-fluorescence and an indicator function for the relevant stimulus
+fluorescence and the timing of stimulus delivery
 \begin{equation}
     \rho_{m,n,s}^{(d)} =
-    \corr\left[\frac{1}{\lvert \mathcal{T}_{m}^{(d)} \rvert}
-    \sum_{t \in
-    \mathcal{T}_{m}^{(d)}}
-    \mathbf{f}_{m,n,t - T_\text{baseline}:t+T_\text{tone}
-    + T_\text{delay} + T_\text{reward} + T_\text{post}}^{(d)},
-    \mathbf{1}_s\right],
+    \text{corr} \left[%
+        \frac{1}{\lvert \mathcal{T}_{m}^{(d)} \rvert}
+        \sum_{t \in
+        \mathcal{T}_{m}^{(d)}}
+        \mathbf{f}_{m,n,t - T_\text{baseline}:t+T_\text{tone}
+        + T_\text{delay} + T_\text{reward} + T_\text{post}}^{(d)},
+        \mathbf{1}_s
+    \right],
 \end{equation}
 where $t$ is the start time of a trial (defined as the start of the tone
 stimulus), $\mathcal{T}_{m}^{(d)}$ is the set of all trial start times from
