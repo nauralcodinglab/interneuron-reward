@@ -66,21 +66,27 @@ def get_averagetrace_given_cellid_sampler(
 ) -> Callable[[], np.ndarray]:
     num_trials_today = (
         session.query(tab.Trial)
-        .filter(tab.Trial.day == day, tab.Trial.mouse_id == mouse_id)
+        .filter(
+            tab.Trial.day == day,
+            tab.Trial.mouse_id == mouse_id,
+            tab.Trial.trial_kind == 'non_catch',
+        )
         .count()
     )
     num_frames_today = len(
         session.query(tab.SessionTrace)
-            .filter(
-                tab.SessionTrace.cell_id
-                == get_day_one_cell_ids(session, mouse_id)[0],
-                tab.SessionTrace.day == day,
-            )
-            .first()
-            .trace
+        .filter(
+            tab.SessionTrace.cell_id
+            == get_day_one_cell_ids(session, mouse_id)[0],
+            tab.SessionTrace.day == day,
+        )
+        .first()
+        .trace
     )
 
-    session_traces: Dict[str, np.ndarray] = _cache_session_traces(session, mouse_id, day)
+    session_traces: Dict[str, np.ndarray] = _cache_session_traces(
+        session, mouse_id, day
+    )
 
     def sample() -> np.ndarray:
         """Randomly sample trial times and cells and return the trial averages.
