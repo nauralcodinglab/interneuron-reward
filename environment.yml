@@ -1,4 +1,4 @@
-name: candice
+name: interneuron-reward
 channels:
   - defaults
 dependencies:
@@ -115,4 +115,4 @@ dependencies:
     - mysql-connector-python==8.0.21
     - protobuf==3.13.0
     - statannot==0.2.2
-prefix: /opt/miniconda3/envs/candice
+prefix: /opt/miniconda3/envs/interneuron-reward
